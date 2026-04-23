@@ -123,6 +123,11 @@ const Tools = (() => {
       return;
     }
 
+    if (currentTool === 'axis') {
+      showAxisCreateModal(p);
+      return;
+    }
+
     isDrawing = true;
     startPt = p;
   }
@@ -165,18 +170,6 @@ const Tools = (() => {
       pendingArcEnd = { ...p };
       showTextModal(p, 'arc-dim');
       startPt = null;
-      return;
-    }
-
-    if (currentTool === 'axis') {
-      const origin = { ...startPt };
-      const ref = { ...p };
-      startPt = null;
-      buildAxis(origin, ref).then(obj => {
-        canvas.add(obj);
-        canvas.renderAll();
-        switchToSelect();
-      });
       return;
     }
 
@@ -292,7 +285,6 @@ const Tools = (() => {
       case 'line':         return buildLine(start, end, false);
       case 'dashed-line':  return buildLine(start, end, true);
       case 'arc-dim':      return buildArcDimPreview(start, end);
-      case 'axis':         return buildAxisPreview(start, end);
       case 'projection':   return buildProjectionPreview(start, end);
       default:             return null;
     }
@@ -436,28 +428,6 @@ const Tools = (() => {
     return `M ${from.x} ${from.y} L ${bx} ${by} M ${lx} ${ly} L ${to.x} ${to.y} L ${rx} ${ry} Z`;
   }
 
-  function buildAxisPreview(origin, refPt) {
-    const dx = refPt.x - origin.x;
-    const dy = refPt.y - origin.y;
-    const len = Math.sqrt(dx * dx + dy * dy) || 1;
-    const xDir = { x: dx / len, y: dy / len };
-    const yDir = { x: xDir.y, y: -xDir.x };
-    const stub = len * 0.12;
-    const d =
-      buildAxisArrowPath(
-        { x: origin.x - stub * xDir.x, y: origin.y - stub * xDir.y },
-        { x: origin.x + len * xDir.x,  y: origin.y + len * xDir.y  }
-      ) + ' ' +
-      buildAxisArrowPath(
-        { x: origin.x - stub * yDir.x, y: origin.y - stub * yDir.y },
-        { x: origin.x + len * yDir.x,  y: origin.y + len * yDir.y  }
-      );
-    return new fabric.Path(d, {
-      stroke: color, strokeWidth, fill: color,
-      strokeLineCap: 'butt', strokeLineJoin: 'miter',
-    });
-  }
-
   async function buildAxisFromParams(origin, xDir, xLen, yLen, xNegLen, yNegLen, labelSize, tickOpts = {}) {
     const yDir = { x: xDir.y, y: -xDir.x };
 
@@ -541,28 +511,31 @@ const Tools = (() => {
     return group;
   }
 
-  async function buildAxis(origin, refPt) {
-    const dx = refPt.x - origin.x;
-    const dy = refPt.y - origin.y;
-    const len = Math.sqrt(dx * dx + dy * dy) || 1;
-    const xDir = { x: dx / len, y: dy / len };
-    const labelSize = Math.max(12, Math.min(32, len * 0.07));
-    const negLen = Math.round(len * 0.12);
-    const group = await buildAxisFromParams(origin, xDir, len, len, negLen, negLen, labelSize);
-    const gc = group.getCenterPoint();
-    group._axisData = {
-      relOriginX: origin.x - gc.x,
-      relOriginY: origin.y - gc.y,
-      xDirX: xDir.x,
-      xDirY: xDir.y,
-      xLen: len,
-      yLen: len,
-      xNegLen: negLen,
-      yNegLen: negLen,
-      labelSize,
-      tickOpts: { spacing: 0, showTicks: true, showNumbers: true },
+  function showAxisCreateModal(origin) {
+    document.getElementById('axis-x-len').value     = 200;
+    document.getElementById('axis-y-len').value     = 200;
+    document.getElementById('axis-x-neg-len').value = 30;
+    document.getElementById('axis-y-neg-len').value = 30;
+    document.getElementById('axis-label-size').value = 18;
+    document.getElementById('axis-tick-spacing').value = 0;
+    document.getElementById('axis-show-ticks').checked   = true;
+    document.getElementById('axis-show-numbers').checked = true;
+    document.getElementById('axis-ratio-modal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('axis-x-len').focus(), 50);
+    axisRatioCallback = async (xLen, yLen, xNegLen, yNegLen, labelSize, tickOpts) => {
+      const xDir = { x: 1, y: 0 };
+      const group = await buildAxisFromParams(origin, xDir, xLen, yLen, xNegLen, yNegLen, labelSize, tickOpts);
+      const gc = group.getCenterPoint();
+      group._axisData = {
+        relOriginX: origin.x - gc.x,
+        relOriginY: origin.y - gc.y,
+        xDirX: 1, xDirY: 0,
+        xLen, yLen, xNegLen, yNegLen, labelSize, tickOpts,
+      };
+      canvas.add(group);
+      canvas.renderAll();
+      switchToSelect();
     };
-    return group;
   }
 
   function showAxisRatioModal(group) {
