@@ -315,7 +315,13 @@ const Tools = (() => {
   // ── Bucket fill ──
   function applyBucketFill(p) {
     FillTool.apply(canvas, p.x, p.y, color, fillOpacity, (err, img) => {
-      if (err) return;
+      if (err) {
+        // 선 위를 클릭했거나 배경 없음 — 캔버스를 짧게 흔들어 피드백
+        const el = canvas.getElement().parentElement;
+        el.style.outline = '2px solid #f38ba8';
+        setTimeout(() => { el.style.outline = ''; }, 300);
+        return;
+      }
       canvas.add(img);
       canvas.renderAll();
     });

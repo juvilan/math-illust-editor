@@ -1,9 +1,12 @@
 const FillTool = (() => {
 
-  // min(R,G,B) < 100이면 "선(엣지)"으로 판단
+  // 밝기 < 200 이면 "선(엣지)"으로 판단
+  // 안티앨리어싱 경계(회색 ~150-190)까지 포함해 선 밖으로 새는 현상 방지
+  // 투명 픽셀(alpha < 128)은 빈 영역으로 간주 — 채울 수 있음
   function isEdge(data, pos) {
     const i = pos * 4;
-    return Math.min(data[i], data[i + 1], data[i + 2]) < 100;
+    if (data[i + 3] < 128) return false;
+    return (data[i] + data[i + 1] + data[i + 2]) / 3 < 200;
   }
 
   function floodFillMask(data, width, height, startX, startY) {
@@ -80,8 +83,8 @@ const FillTool = (() => {
     const mask = floodFillMask(imgData.data, width, height, Math.round(px), Math.round(py));
 
     const filled = mask.reduce((a, b) => a + b, 0);
-    if (filled < 20 || filled > width * height * 0.85) {
-      callback('too-small-or-large');
+    if (filled === 0) {
+      callback('on-edge');
       return;
     }
 
