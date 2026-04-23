@@ -568,15 +568,16 @@ const Tools = (() => {
     document.getElementById('axis-y-len').value    = Math.round(data.yLen    * scale);
     document.getElementById('axis-x-neg-len').value = Math.round((data.xNegLen || 0) * scale);
     document.getElementById('axis-y-neg-len').value = Math.round((data.yNegLen || 0) * scale);
+    document.getElementById('axis-label-size').value = Math.round(data.labelSize || 18);
     document.getElementById('axis-tick-spacing').value = Math.round((tick.spacing || 0) * scale);
     document.getElementById('axis-show-ticks').checked   = tick.showTicks   !== false;
     document.getElementById('axis-show-numbers').checked = tick.showNumbers !== false;
     document.getElementById('axis-ratio-modal').classList.remove('hidden');
     setTimeout(() => document.getElementById('axis-x-len').focus(), 50);
-    axisRatioCallback = (xLen, yLen, xNegLen, yNegLen, tickOpts) => rebuildAxis(group, xLen, yLen, xNegLen, yNegLen, tickOpts);
+    axisRatioCallback = (xLen, yLen, xNegLen, yNegLen, newLabelSize, tickOpts) => rebuildAxis(group, xLen, yLen, xNegLen, yNegLen, newLabelSize, tickOpts);
   }
 
-  async function rebuildAxis(group, newXLen, newYLen, newXNegLen, newYNegLen, tickOpts) {
+  async function rebuildAxis(group, newXLen, newYLen, newXNegLen, newYNegLen, newLabelSize, tickOpts) {
     const data = group._axisData;
     if (!data) return;
     const matrix = group.calcTransformMatrix();
@@ -591,7 +592,7 @@ const Tools = (() => {
       y: data.xDirX * sin + data.xDirY * cos,
     };
     const newGroup = await buildAxisFromParams(
-      canvasOrigin, visXDir, newXLen, newYLen, newXNegLen, newYNegLen, data.labelSize, tickOpts
+      canvasOrigin, visXDir, newXLen, newYLen, newXNegLen, newYNegLen, newLabelSize, tickOpts
     );
     const gc = newGroup.getCenterPoint();
     newGroup._axisData = {
@@ -603,7 +604,7 @@ const Tools = (() => {
       yLen: newYLen,
       xNegLen: newXNegLen,
       yNegLen: newYNegLen,
-      labelSize: data.labelSize,
+      labelSize: newLabelSize,
       tickOpts,
     };
     canvas.remove(group);
@@ -613,16 +614,17 @@ const Tools = (() => {
   }
 
   async function confirmAxisRatio() {
-    const xLen = parseFloat(document.getElementById('axis-x-len').value);
-    const yLen = parseFloat(document.getElementById('axis-y-len').value);
-    const xNegLen  = parseFloat(document.getElementById('axis-x-neg-len').value)  || 0;
-    const yNegLen  = parseFloat(document.getElementById('axis-y-neg-len').value)  || 0;
-    const spacing  = parseFloat(document.getElementById('axis-tick-spacing').value) || 0;
+    const xLen      = parseFloat(document.getElementById('axis-x-len').value);
+    const yLen      = parseFloat(document.getElementById('axis-y-len').value);
+    const xNegLen   = parseFloat(document.getElementById('axis-x-neg-len').value)  || 0;
+    const yNegLen   = parseFloat(document.getElementById('axis-y-neg-len').value)  || 0;
+    const labelSize = parseFloat(document.getElementById('axis-label-size').value) || 18;
+    const spacing   = parseFloat(document.getElementById('axis-tick-spacing').value) || 0;
     const showTicks   = document.getElementById('axis-show-ticks').checked;
     const showNumbers = document.getElementById('axis-show-numbers').checked;
     document.getElementById('axis-ratio-modal').classList.add('hidden');
     if (axisRatioCallback && xLen > 0 && yLen > 0) {
-      await axisRatioCallback(xLen, yLen, xNegLen, yNegLen, { spacing, showTicks, showNumbers });
+      await axisRatioCallback(xLen, yLen, xNegLen, yNegLen, labelSize, { spacing, showTicks, showNumbers });
       axisRatioCallback = null;
     }
   }
