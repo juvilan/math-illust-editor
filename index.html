@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>수학 삽화 편집기</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <div id="toolbar">
+    <div class="toolbar-group">
+      <label class="btn" for="file-input">📂 불러오기</label>
+      <input type="file" id="file-input" accept="image/*,.svg,.svgz" hidden>
+      <button id="btn-load-json">📋 작업 열기</button>
+      <input type="file" id="json-input" accept=".json" hidden>
+      <button id="btn-save">💾 저장</button>
+      <button id="btn-export">📤 PNG</button>
+      <button id="btn-export-svg">📤 SVG</button>
+    </div>
+    <div class="toolbar-group">
+      <label>색상</label>
+      <input type="color" id="color-picker" value="#000000">
+      <label>두께</label>
+      <input type="range" id="stroke-width" min="1" max="10" value="2">
+      <span id="stroke-width-val">2</span>
+      <label>점선</label>
+      <select id="dash-pattern">
+        <option value="4,4">촘촘</option>
+        <option value="8,6" selected>보통</option>
+        <option value="14,6">긴선</option>
+        <option value="14,6,4,6">일점쇄선</option>
+      </select>
+      <label>불투명도</label>
+      <input type="range" id="opacity-input" min="10" max="100" step="10" value="30">
+      <span id="opacity-val">30%</span>
+      <button id="btn-grid-snap" title="그리드 스냅 ON/OFF">⊞ 스냅</button>
+      <input type="number" id="grid-size-input" min="2" max="100" value="10" style="width:44px" title="그리드 크기(px)">
+      <span id="clone-brush-wrap" style="display:none;align-items:center;gap:4px;">
+        <label>브러시</label>
+        <input type="range" id="clone-brush" min="4" max="80" value="20">
+        <span id="clone-brush-val">20</span>
+      </span>
+    </div>
+    <div class="toolbar-group">
+      <button id="btn-undo">↩ 실행취소</button>
+      <button id="btn-redo">↪ 다시실행</button>
+      <button id="btn-lock">🔒 잠금</button>
+      <button id="btn-delete">🗑️ 삭제</button>
+    </div>
+    <div id="clone-hint" class="hint-badge hidden">Alt+클릭: 소스 설정 · 드래그: 복사</div>
+  </div>
+
+  <div id="main">
+    <div id="sidebar">
+      <button class="tool-btn active" data-tool="select" title="선택 (V)">
+        <span class="tool-icon">↖</span><small>선택</small>
+      </button>
+      <div class="tool-divider"></div>
+      <button class="tool-btn" data-tool="line" title="선분 (L)">
+        <span class="tool-icon">—</span><small>선분</small>
+      </button>
+      <button class="tool-btn" data-tool="dashed-line" title="점선 (D)">
+        <span class="tool-icon">╌</span><small>점선</small>
+      </button>
+      <button class="tool-btn" data-tool="arrow" title="화살표 (A)">
+        <span class="tool-icon">→</span><small>화살표</small>
+      </button>
+      <button class="tool-btn" data-tool="double-arrow" title="양방향 화살표">
+        <span class="tool-icon">↔</span><small>양방향</small>
+      </button>
+      <button class="tool-btn" data-tool="axis" title="좌표축 (X)">
+        <span class="tool-icon">⊕</span><small>좌표축</small>
+      </button>
+      <button class="tool-btn" data-tool="projection" title="점투영 (P)">
+        <span class="tool-icon">⌐</span><small>투영</small>
+      </button>
+      <button class="tool-btn" data-tool="text" title="텍스트 (T)">
+        <span class="tool-icon">T</span><small>텍스트</small>
+      </button>
+      <button class="tool-btn" data-tool="point" title="점 (닫힌)">
+        <span class="tool-icon">●</span><small>점</small>
+      </button>
+      <button class="tool-btn" data-tool="open-point" title="점 (열린)">
+        <span class="tool-icon">○</span><small>열린점</small>
+      </button>
+      <div class="tool-divider"></div>
+      <button class="tool-btn" data-tool="angle" title="각도 표시 (G)">
+        <span class="tool-icon">∠</span><small>각도</small>
+      </button>
+      <button class="tool-btn" data-tool="bucket" title="버킷 채우기 (F)">
+        <span class="tool-icon">🪣</span><small>채우기</small>
+      </button>
+      <button class="tool-btn" data-tool="arc-dim" title="호 치수 (R)">
+        <span class="tool-icon">⌒</span><small>호치수</small>
+      </button>
+      <div class="tool-divider"></div>
+      <button class="tool-btn" data-tool="clone" title="복제 도장 (C) — Alt+클릭: 소스 설정">
+        <span class="tool-icon">🖌</span><small>도장</small>
+      </button>
+    </div>
+
+    <div id="canvas-container">
+      <canvas id="main-canvas"></canvas>
+      <canvas id="clone-overlay" style="position:absolute;top:0;left:0;z-index:10;display:none;cursor:crosshair;"></canvas>
+      <div id="canvas-hint">📂 PNG 파일을 불러오세요</div>
+    </div>
+  </div>
+</div>
+
+<!-- 텍스트 입력 모달 -->
+<div id="text-modal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title">텍스트 입력</div>
+    <input type="text" id="text-input" placeholder="LaTeX 입력 예: A, \frac{1}{2}, \alpha">
+    <div class="modal-row">
+      <label>글자 크기</label>
+      <input type="range" id="font-size-input" min="10" max="60" value="18">
+      <span id="font-size-val">18</span>
+    </div>
+    <div class="modal-buttons">
+      <button id="text-ok">확인</button>
+      <button id="text-cancel" class="btn-secondary">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- 각도 입력 모달 -->
+<div id="angle-modal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-title">각도 표시</div>
+    <input type="text" id="angle-input" placeholder="예: 60°, θ, α" value="90°">
+    <div class="modal-row">
+      <label>글자 크기</label>
+      <input type="range" id="angle-font-size-input" min="10" max="60" value="18">
+      <span id="angle-font-size-val">18</span>
+    </div>
+    <label class="modal-check">
+      <input type="checkbox" id="angle-no-label"> 각도 표시만 (숫자 없음)
+    </label>
+    <div class="modal-buttons">
+      <button id="angle-ok">확인</button>
+      <button id="angle-cancel" class="btn-secondary">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- 좌표축 설정 모달 -->
+<div id="axis-ratio-modal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-title">축 설정</div>
+    <div class="modal-row">
+      <label>x축 (+)</label>
+      <input type="number" id="axis-x-len" min="20" max="2000" step="10" value="200">
+    </div>
+    <div class="modal-row">
+      <label>x축 (-)</label>
+      <input type="number" id="axis-x-neg-len" min="0" max="2000" step="10" value="30">
+    </div>
+    <div class="modal-row">
+      <label>y축 (+)</label>
+      <input type="number" id="axis-y-len" min="20" max="2000" step="10" value="200">
+    </div>
+    <div class="modal-row">
+      <label>y축 (-)</label>
+      <input type="number" id="axis-y-neg-len" min="0" max="2000" step="10" value="30">
+    </div>
+    <div class="modal-row">
+      <label>눈금 간격 (px)</label>
+      <input type="number" id="axis-tick-spacing" min="0" max="500" step="5" value="0">
+      <small style="color:#888">0=없음</small>
+    </div>
+    <label class="modal-check">
+      <input type="checkbox" id="axis-show-ticks" checked> 눈금 선
+    </label>
+    <label class="modal-check">
+      <input type="checkbox" id="axis-show-numbers" checked> 숫자
+    </label>
+    <div class="modal-buttons">
+      <button id="axis-ratio-ok">확인</button>
+      <button id="axis-ratio-cancel" class="btn-secondary">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- 단축키 오버레이 -->
+<div id="shortcut-modal" class="modal hidden">
+  <div class="modal-box" style="max-width:480px;max-height:80vh;overflow-y:auto;">
+    <div class="modal-title">키보드 단축키</div>
+    <table class="shortcut-table">
+      <thead><tr><th>작업</th><th>Mac</th><th>Windows</th></tr></thead>
+      <tbody>
+        <tr><td colspan="3" class="shortcut-section">도구 선택</td></tr>
+        <tr><td>선택</td><td colspan="2">V</td></tr>
+        <tr><td>선분</td><td colspan="2">L</td></tr>
+        <tr><td>점선</td><td colspan="2">D</td></tr>
+        <tr><td>화살표</td><td colspan="2">A</td></tr>
+        <tr><td>텍스트</td><td colspan="2">T</td></tr>
+        <tr><td>각도</td><td colspan="2">G</td></tr>
+        <tr><td>채우기</td><td colspan="2">F</td></tr>
+        <tr><td>호치수</td><td colspan="2">R</td></tr>
+        <tr><td>좌표축</td><td colspan="2">X</td></tr>
+        <tr><td>투영</td><td colspan="2">P</td></tr>
+        <tr><td>복제도장</td><td colspan="2">C</td></tr>
+        <tr><td colspan="3" class="shortcut-section">편집</td></tr>
+        <tr><td>복사</td><td>⌘C</td><td>Ctrl+C</td></tr>
+        <tr><td>붙여넣기</td><td>⌘V</td><td>Ctrl+V</td></tr>
+        <tr><td>실행취소</td><td>⌘Z</td><td>Ctrl+Z</td></tr>
+        <tr><td>다시실행</td><td>⌘⇧Z</td><td>Ctrl+Y</td></tr>
+        <tr><td>삭제</td><td>Delete / Backspace</td><td>Delete / Backspace</td></tr>
+        <tr><td colspan="3" class="shortcut-section">이동 (선택 도구)</td></tr>
+        <tr><td>1px 이동</td><td colspan="2">방향키</td></tr>
+        <tr><td>10px 이동</td><td colspan="2">Shift+방향키</td></tr>
+        <tr><td colspan="3" class="shortcut-section">기타</td></tr>
+        <tr><td>45° 스냅</td><td colspan="2">Shift+드래그</td></tr>
+        <tr><td>복제도장 소스</td><td colspan="2">Alt+클릭</td></tr>
+        <tr><td>이 창 닫기</td><td colspan="2">? 또는 Esc</td></tr>
+      </tbody>
+    </table>
+    <div class="modal-buttons">
+      <button id="shortcut-close">닫기</button>
+    </div>
+  </div>
+</div>
+
+<script>MathJax = { startup: { typeset: false }, svg: { fontCache: 'local' } };</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+<script src="js/canvas.js"></script>
+<script src="js/fill.js"></script>
+<script src="js/tools.js"></script>
+<script src="js/clone.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
