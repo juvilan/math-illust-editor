@@ -190,7 +190,78 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('shortcut-modal').classList.add('hidden');
   });
 
-  // ── Graph modal ──
+  // ── Graph modal — dropdown setup ──
+  const _graphFnSelect = document.getElementById('graph-fn-type');
+  Tools.GRAPH_FN_DEFS.forEach(def => {
+    const opt = document.createElement('option');
+    opt.value = def.key;
+    opt.textContent = def.label;
+    _graphFnSelect.appendChild(opt);
+  });
+
+  function _updateGraphParamsArea(fnKey) {
+    const def       = Tools.GRAPH_FN_DEFS.find(d => d.key === fnKey);
+    const area      = document.getElementById('graph-params-area');
+    const customRow = document.getElementById('graph-custom-row');
+    area.innerHTML  = '';
+    if (!def || !def.build) { customRow.classList.remove('hidden'); return; }
+    customRow.classList.add('hidden');
+    const row = document.createElement('div');
+    row.className = 'modal-row';
+    row.style.flexWrap = 'wrap';
+    row.style.gap = '6px';
+    def.params.forEach(({k, v, s}) => {
+      const lbl  = document.createElement('label');
+      lbl.textContent = k + ' =';
+      lbl.style.cssText = 'white-space:nowrap;margin-right:2px';
+      const inp  = document.createElement('input');
+      inp.type   = 'number';
+      inp.className = 'graph-param';
+      inp.dataset.key = k;
+      inp.value  = v;
+      inp.step   = s;
+      inp.style.width = '52px';
+      row.appendChild(lbl);
+      row.appendChild(inp);
+    });
+    area.appendChild(row);
+  }
+
+  function _updateGraphPreview() {
+    const fnKey   = _graphFnSelect.value;
+    const def     = Tools.GRAPH_FN_DEFS.find(d => d.key === fnKey);
+    const preview = document.getElementById('graph-expr-preview');
+    if (!def || !def.display) {
+      const expr = document.getElementById('graph-expr').value.trim();
+      preview.textContent = expr ? `y = ${expr}` : '';
+      return;
+    }
+    const p = {};
+    document.querySelectorAll('#graph-params-area .graph-param').forEach(inp => {
+      p[inp.dataset.key] = parseFloat(inp.value);
+      if (isNaN(p[inp.dataset.key])) p[inp.dataset.key] = 0;
+    });
+    preview.textContent = def.display(p);
+  }
+
+  _graphFnSelect.addEventListener('change', (e) => {
+    _updateGraphParamsArea(e.target.value);
+    _updateGraphPreview();
+  });
+  document.getElementById('graph-params-area').addEventListener('input', (e) => {
+    if (e.target.classList.contains('graph-param')) _updateGraphPreview();
+  });
+  document.getElementById('graph-params-area').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') Tools.confirmGraph();
+    if (e.key === 'Escape') Tools.cancelGraph();
+  });
+  document.getElementById('graph-expr').addEventListener('input', _updateGraphPreview);
+
+  // 초기 params area 생성 (기본 선택 함수)
+  _updateGraphParamsArea(_graphFnSelect.value);
+  _updateGraphPreview();
+
+  // ── Graph modal — buttons ──
   document.getElementById('graph-ok').addEventListener('click', () => Tools.confirmGraph());
   document.getElementById('graph-cancel').addEventListener('click', () => Tools.cancelGraph());
 

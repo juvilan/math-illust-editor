@@ -22,6 +22,43 @@ const Tools = (() => {
   // Graph tool state
   let _pendingGraphCtx = null;
 
+  const GRAPH_FN_DEFS = [
+    { key:'linear',    label:'일차함수',    params:[{k:'a',v:1,s:.5},{k:'b',v:0,s:.5}],
+      display: p=>`y = ${p.a}x + ${p.b}`,
+      build: p=>`(${p.a})*x+(${p.b})` },
+    { key:'quadratic', label:'이차함수',    params:[{k:'a',v:1,s:.5},{k:'b',v:0,s:.5},{k:'c',v:0,s:.5}],
+      display: p=>`y = ${p.a}x² + ${p.b}x + ${p.c}`,
+      build: p=>`(${p.a})*x**2+(${p.b})*x+(${p.c})` },
+    { key:'power',     label:'거듭제곱',    params:[{k:'a',v:1,s:.5},{k:'n',v:3,s:1}],
+      display: p=>`y = ${p.a}x^${p.n}`,
+      build: p=>`(${p.a})*pow(x,${p.n})` },
+    { key:'sin',       label:'사인',        params:[{k:'a',v:1,s:.5},{k:'b',v:1,s:.5},{k:'c',v:0,s:.1},{k:'d',v:0,s:.5}],
+      display: p=>`y = ${p.a}·sin(${p.b}x + ${p.c}) + ${p.d}`,
+      build: p=>`(${p.a})*sin((${p.b})*x+(${p.c}))+(${p.d})` },
+    { key:'cos',       label:'코사인',      params:[{k:'a',v:1,s:.5},{k:'b',v:1,s:.5},{k:'c',v:0,s:.1},{k:'d',v:0,s:.5}],
+      display: p=>`y = ${p.a}·cos(${p.b}x + ${p.c}) + ${p.d}`,
+      build: p=>`(${p.a})*cos((${p.b})*x+(${p.c}))+(${p.d})` },
+    { key:'tan',       label:'탄젠트',      params:[{k:'a',v:1,s:.5},{k:'b',v:1,s:.5},{k:'c',v:0,s:.1},{k:'d',v:0,s:.5}],
+      display: p=>`y = ${p.a}·tan(${p.b}x + ${p.c}) + ${p.d}`,
+      build: p=>`(${p.a})*tan((${p.b})*x+(${p.c}))+(${p.d})` },
+    { key:'exp',       label:'지수함수',    params:[{k:'a',v:1,s:.5},{k:'b',v:2,s:1},{k:'c',v:0,s:.5}],
+      display: p=>`y = ${p.a}·${p.b}^x + ${p.c}`,
+      build: p=>`(${p.a})*pow(${p.b},x)+(${p.c})` },
+    { key:'log',       label:'로그함수',    params:[{k:'a',v:1,s:.5},{k:'b',v:10,s:1},{k:'c',v:0,s:.5}],
+      display: p=>`y = ${p.a}·log_${p.b}(x) + ${p.c}`,
+      build: p=>`(${p.a})*log(x)/log(${p.b})+(${p.c})` },
+    { key:'sqrt',      label:'제곱근',      params:[{k:'a',v:1,s:.5},{k:'b',v:1,s:.5},{k:'c',v:0,s:.5},{k:'d',v:0,s:.5}],
+      display: p=>`y = ${p.a}·√(${p.b}x + ${p.c}) + ${p.d}`,
+      build: p=>`(${p.a})*sqrt((${p.b})*x+(${p.c}))+(${p.d})` },
+    { key:'rational',  label:'분수함수',    params:[{k:'a',v:1,s:.5},{k:'b',v:1,s:.5},{k:'c',v:0,s:.5},{k:'d',v:0,s:.5}],
+      display: p=>`y = ${p.a}/( ${p.b}x + ${p.c}) + ${p.d}`,
+      build: p=>`(${p.a})/((${p.b})*x+(${p.c}))+(${p.d})` },
+    { key:'abs',       label:'절댓값',      params:[{k:'a',v:1,s:.5},{k:'b',v:1,s:.5},{k:'c',v:0,s:.5},{k:'d',v:0,s:.5}],
+      display: p=>`y = ${p.a}|${p.b}x + ${p.c}| + ${p.d}`,
+      build: p=>`(${p.a})*abs((${p.b})*x+(${p.c}))+(${p.d})` },
+    { key:'custom',    label:'직접 입력',   params:[], display:null, build:null },
+  ];
+
   // Grid snap
   let gridSnapEnabled = false;
   let gridSize = 10;
@@ -727,26 +764,45 @@ const Tools = (() => {
   }
 
   function confirmGraph() {
-    const ctx = _pendingGraphCtx;
+    const ctx    = _pendingGraphCtx;
     if (!ctx) return;
-    const exprStr = document.getElementById('graph-expr').value.trim();
-    const xMin    = parseFloat(document.getElementById('graph-xmin').value);
-    const xMax    = parseFloat(document.getElementById('graph-xmax').value);
-    const xScale  = parseFloat(document.getElementById('graph-scale').value)  || 40;
-    const yScale  = parseFloat(document.getElementById('graph-yscale').value) || xScale;
+    const fnKey  = document.getElementById('graph-fn-type').value;
+    const def    = GRAPH_FN_DEFS.find(d => d.key === fnKey);
+    const xMin   = parseFloat(document.getElementById('graph-xmin').value);
+    const xMax   = parseFloat(document.getElementById('graph-xmax').value);
+    const xScale = parseFloat(document.getElementById('graph-scale').value)  || 40;
+    const yScale = parseFloat(document.getElementById('graph-yscale').value) || xScale;
+    if (isNaN(xMin) || isNaN(xMax) || xMin >= xMax) return;
 
-    if (!exprStr || isNaN(xMin) || isNaN(xMax) || xMin >= xMax) return;
+    let exprStr, savedParams = null;
+    if (!def || !def.build) {
+      exprStr = document.getElementById('graph-expr').value.trim();
+      if (!exprStr) return;
+    } else {
+      const p = {};
+      document.querySelectorAll('#graph-params-area .graph-param').forEach(inp => {
+        p[inp.dataset.key] = parseFloat(inp.value);
+        if (isNaN(p[inp.dataset.key])) p[inp.dataset.key] = 0;
+      });
+      savedParams = p;
+      exprStr = def.build(p);
+    }
 
     const path = buildGraphPath(exprStr, xMin, xMax, xScale, yScale, ctx.axisOrigin, ctx.axisXDir, ctx.axisYDir);
     if (!path) {
-      document.getElementById('graph-expr').style.outline = '2px solid #f38ba8';
-      setTimeout(() => { document.getElementById('graph-expr').style.outline = ''; }, 800);
+      const target = fnKey === 'custom'
+        ? document.getElementById('graph-expr')
+        : document.getElementById('graph-params-area');
+      target.style.outline = '2px solid #f38ba8';
+      setTimeout(() => { target.style.outline = ''; }, 800);
       return;
     }
     path._graphOriginX = ctx.axisOrigin.x;
     path._graphOriginY = ctx.axisOrigin.y;
     path._graphXDirX   = ctx.axisXDir.x;
     path._graphXDirY   = ctx.axisXDir.y;
+    path._graphFnKey   = fnKey;
+    path._graphParams  = savedParams;
 
     document.getElementById('graph-modal').classList.add('hidden');
     if (ctx.existingPath) canvas.remove(ctx.existingPath);
@@ -767,21 +823,40 @@ const Tools = (() => {
     const axisXDir   = { x: existing._graphXDirX !== undefined ? existing._graphXDirX : 1,
                          y: existing._graphXDirY !== undefined ? existing._graphXDirY : 0 };
     const axisYDir   = { x: axisXDir.y, y: -axisXDir.x };
-
     _pendingGraphCtx = { axisOrigin, axisXDir, axisYDir, existingPath: existing };
 
-    document.getElementById('graph-expr').value   = existing._graphExpr  || '';
+    // fn-type 설정 → app.js change 리스너가 params area를 기본값으로 재생성
+    const fnKey  = existing._graphFnKey || 'custom';
+    const select = document.getElementById('graph-fn-type');
+    select.value = fnKey;
+    select.dispatchEvent(new Event('change')); // 동기 실행 → params area 재생성됨
+
+    // 저장된 파라미터 값으로 덮어쓰기
+    if (existing._graphParams) {
+      document.querySelectorAll('#graph-params-area .graph-param').forEach(inp => {
+        const v = existing._graphParams[inp.dataset.key];
+        if (v !== undefined) inp.value = v;
+      });
+      // 프리뷰 갱신 트리거
+      const first = document.querySelector('#graph-params-area .graph-param');
+      if (first) first.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    if (fnKey === 'custom') {
+      document.getElementById('graph-expr').value = existing._graphExpr || '';
+      document.getElementById('graph-expr').dispatchEvent(new Event('input'));
+    }
+
     document.getElementById('graph-xmin').value   = existing._graphXMin  !== undefined ? existing._graphXMin  : -5;
     document.getElementById('graph-xmax').value   = existing._graphXMax  !== undefined ? existing._graphXMax  : 5;
     document.getElementById('graph-scale').value  = existing._graphScale  || 40;
     document.getElementById('graph-yscale').value = existing._graphYScale || existing._graphScale || 40;
     document.getElementById('graph-scale-hint').textContent = '';
-    document.getElementById('graph-expr').style.outline = '';
     document.getElementById('graph-modal').classList.remove('hidden');
     setTimeout(() => {
-      const input = document.getElementById('graph-expr');
-      input.select();
-      input.focus();
+      const target = fnKey === 'custom'
+        ? document.getElementById('graph-expr')
+        : document.querySelector('#graph-params-area .graph-param');
+      if (target) { target.select && target.select(); target.focus(); }
     }, 50);
   }
 
@@ -1096,7 +1171,7 @@ const Tools = (() => {
     confirmText, cancelText,
     confirmAngle, cancelAngle,
     confirmAxisRatio, cancelAxisRatio,
-    confirmGraph, cancelGraph,
+    confirmGraph, cancelGraph, GRAPH_FN_DEFS,
     toggleGridSnap, setGridSize,
     toggleLock,
   };

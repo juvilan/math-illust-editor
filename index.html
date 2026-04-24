@@ -168,35 +168,40 @@
 
 <!-- 함수 그래프 모달 -->
 <div id="graph-modal" class="modal hidden">
-  <div class="modal-box">
+  <div class="modal-box" style="min-width:340px">
     <div class="modal-title">함수 그래프</div>
     <div class="modal-hint">
-      좌표축을 먼저 그린 뒤 그 위를 클릭하면 <b>비율이 자동 입력</b>됩니다.<br>
-      <b>x 비율</b>: 1단위가 몇 px인지 (가로 간격)<br>
-      <b>y 비율</b>: 1단위가 몇 px인지 (세로 진폭) — sin·cos은 이 값으로 진폭 조절<br>
-      사용 가능한 함수: sin, cos, tan, sqrt, abs, log, exp, pow(x,n)
+      좌표축 위를 클릭하면 <b>x·y 비율이 자동 감지</b>됩니다.<br>
+      <b>y 비율</b>로 sin·cos 진폭 크기를 조절하세요.
     </div>
     <div class="modal-row">
+      <label>함수 종류</label>
+      <select id="graph-fn-type" style="flex:1"></select>
+    </div>
+    <div id="graph-params-area"></div>
+    <div id="graph-custom-row" class="modal-row hidden">
       <label>f(x) =</label>
-      <input type="text" id="graph-expr" placeholder="예: sin(x), x**2, sqrt(x)">
+      <input type="text" id="graph-expr" placeholder="예: sin(x), x**2" style="flex:1">
     </div>
     <div class="modal-row">
-      <label>x 최솟값</label>
-      <input type="number" id="graph-xmin" value="-5" step="0.5">
+      <label>미리보기</label>
+      <code id="graph-expr-preview" style="flex:1;font-size:12px;color:#cba6f7"></code>
     </div>
     <div class="modal-row">
-      <label>x 최댓값</label>
-      <input type="number" id="graph-xmax" value="5" step="0.5">
+      <label>x 범위</label>
+      <input type="number" id="graph-xmin" value="-5" step="0.5" style="width:52px">
+      <span style="margin:0 4px">~</span>
+      <input type="number" id="graph-xmax" value="5" step="0.5" style="width:52px">
     </div>
     <div class="modal-row">
       <label>x 비율</label>
-      <input type="number" id="graph-scale" min="1" max="500" step="1" value="40">
+      <input type="number" id="graph-scale" min="1" max="500" step="1" value="40" style="width:52px">
       <small>px/단위</small>
       <small id="graph-scale-hint" style="color:#888;margin-left:4px"></small>
     </div>
     <div class="modal-row">
       <label>y 비율</label>
-      <input type="number" id="graph-yscale" min="1" max="500" step="1" value="40">
+      <input type="number" id="graph-yscale" min="1" max="500" step="1" value="40" style="width:52px">
       <small>px/단위</small>
     </div>
     <div class="modal-buttons">
