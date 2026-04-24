@@ -155,6 +155,15 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('shortcut-modal').classList.add('hidden');
   });
 
+  // ── Graph modal ──
+  document.getElementById('graph-ok').addEventListener('click', () => Tools.confirmGraph());
+  document.getElementById('graph-cancel').addEventListener('click', () => Tools.cancelGraph());
+
+  document.getElementById('graph-expr').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') Tools.confirmGraph();
+    if (e.key === 'Escape') Tools.cancelGraph();
+  });
+
   // ── Axis ratio modal ──
   document.getElementById('axis-ratio-ok').addEventListener('click', () => Tools.confirmAxisRatio());
   document.getElementById('axis-ratio-cancel').addEventListener('click', () => Tools.cancelAxisRatio());
@@ -238,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const toolMap = { v: 'select', l: 'line', d: 'dashed-line', a: 'arrow', t: 'text', g: 'angle', f: 'bucket', r: 'arc-dim', x: 'axis', p: 'projection', c: 'clone' };
+    const toolMap = { v: 'select', l: 'line', d: 'dashed-line', a: 'arrow', t: 'text', g: 'angle', f: 'bucket', r: 'arc-dim', x: 'axis', e: 'graph', p: 'projection', c: 'clone' };
     const key = e.key.toLowerCase();
 
     if (toolMap[key] && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -278,6 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
       Tools.cancelText();
       Tools.cancelAngle();
       Tools.cancelAxisRatio();
+      Tools.cancelGraph();
       document.getElementById('shortcut-modal').classList.add('hidden');
     }
   });

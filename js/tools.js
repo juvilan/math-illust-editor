@@ -19,6 +19,9 @@ const Tools = (() => {
   // Axis ratio modal callback
   let axisRatioCallback = null;
 
+  // Graph tool state
+  let _pendingGraphCtx = null;
+
   // Grid snap
   let gridSnapEnabled = false;
   let gridSize = 10;
@@ -125,6 +128,11 @@ const Tools = (() => {
 
     if (currentTool === 'axis') {
       showAxisCreateModal(p);
+      return;
+    }
+
+    if (currentTool === 'graph') {
+      showGraphModal(p);
       return;
     }
 
@@ -613,6 +621,129 @@ const Tools = (() => {
     axisRatioCallback = null;
   }
 
+  // ── Graph tool ──
+  function showGraphModal(clickPt) {
+    const axisGroups = canvas.getObjects().filter(o => o._type === 'axis' && o._axisData);
+    let axisOrigin = { ...clickPt };
+    let axisXDir   = { x: 1, y: 0 };
+    let axisYDir   = { x: 0, y: -1 };
+    let minDist    = Infinity;
+
+    for (const g of axisGroups) {
+      const data   = g._axisData;
+      const matrix = g.calcTransformMatrix();
+      const pt     = fabric.util.transformPoint({ x: data.relOriginX, y: data.relOriginY }, matrix);
+      const d      = Math.sqrt((pt.x - clickPt.x) ** 2 + (pt.y - clickPt.y) ** 2);
+      if (d < minDist) {
+        minDist = d;
+        axisOrigin = pt;
+        const angleRad = (g.angle || 0) * Math.PI / 180;
+        const cos = Math.cos(angleRad);
+        const sin = Math.sin(angleRad);
+        axisXDir = { x: data.xDirX * cos - data.xDirY * sin, y: data.xDirX * sin + data.xDirY * cos };
+        axisYDir = { x: axisXDir.y, y: -axisXDir.x };
+        const tick  = data.tickOpts || {};
+        const scale = g.scaleX || 1;
+        if (tick.spacing > 0) {
+          const pxPerUnit = tick.spacing * scale;
+          document.getElementById('graph-scale').value = Math.round(pxPerUnit);
+          document.getElementById('graph-scale-hint').textContent = `축에서 감지: ${Math.round(pxPerUnit)}px/단위`;
+          document.getElementById('graph-xmin').value = -Math.floor(data.xNegLen / tick.spacing);
+          document.getElementById('graph-xmax').value =  Math.floor(data.xLen    / tick.spacing);
+        } else {
+          document.getElementById('graph-scale').value = 40;
+          document.getElementById('graph-scale-hint').textContent = '수동 입력 (축 눈금 없음)';
+          document.getElementById('graph-xmin').value = -5;
+          document.getElementById('graph-xmax').value =  5;
+        }
+      }
+    }
+
+    if (axisGroups.length === 0) {
+      document.getElementById('graph-scale').value = 40;
+      document.getElementById('graph-scale-hint').textContent = '';
+      document.getElementById('graph-xmin').value = -5;
+      document.getElementById('graph-xmax').value =  5;
+    }
+
+    _pendingGraphCtx = { axisOrigin, axisXDir, axisYDir };
+    document.getElementById('graph-expr').value = '';
+    document.getElementById('graph-expr').style.outline = '';
+    document.getElementById('graph-modal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('graph-expr').focus(), 50);
+  }
+
+  // 수학 표현식만 허용 — Math 함수명 제거 후 숫자·연산자·괄호·x만 남아야 통과
+  const _MATH_NAMES = /\b(abs|acos|asin|atan2|atan|ceil|cos|exp|floor|log2|log|max|min|pow|round|sign|sin|sqrt|tan|PI|E)\b/g;
+  const _SAFE_RE    = /^[0-9x\s\+\-\*\/\^().,!%]+$/;
+  function _isSafeMathExpr(expr) {
+    return _SAFE_RE.test(expr.replace(_MATH_NAMES, '1'));
+  }
+
+  function buildGraphPath(exprStr, xMin, xMax, pixelsPerUnit, origin, xDir, yDir) {
+    if (!_isSafeMathExpr(exprStr)) return null;
+    const fnBody = `const {abs,acos,asin,atan,atan2,ceil,cos,exp,floor,log,log2,max,min,pow,round,sign,sin,sqrt,tan,PI,E}=Math; return (${exprStr});`;
+    let fn;
+    try { fn = new Function('x', fnBody); } catch (_) { return null; }
+
+    const steps    = Math.min(Math.ceil(Math.abs(xMax - xMin) * pixelsPerUnit), 2000);
+    const maxJump  = pixelsPerUnit * 10;
+    let d          = '';
+    let prevCy     = null;
+
+    for (let i = 0; i <= steps; i++) {
+      const x = xMin + (i / steps) * (xMax - xMin);
+      let y;
+      try { y = fn(x); } catch (_) { prevCy = null; continue; }
+      if (!isFinite(y) || isNaN(y)) { prevCy = null; continue; }
+
+      const cx = origin.x + x * pixelsPerUnit * xDir.x + y * pixelsPerUnit * yDir.x;
+      const cy = origin.y + x * pixelsPerUnit * xDir.y + y * pixelsPerUnit * yDir.y;
+
+      if (prevCy !== null && Math.abs(cy - prevCy) > maxJump) { prevCy = null; }
+      d += prevCy === null ? `M ${cx} ${cy} ` : `L ${cx} ${cy} `;
+      prevCy = cy;
+    }
+
+    if (!d.trim()) return null;
+
+    const path = new fabric.Path(d, { stroke: color, strokeWidth, fill: '', lockUniScaling: true });
+    path._type       = 'graph';
+    path._graphExpr  = exprStr;
+    path._graphXMin  = xMin;
+    path._graphXMax  = xMax;
+    path._graphScale = pixelsPerUnit;
+    return path;
+  }
+
+  function confirmGraph() {
+    const ctx = _pendingGraphCtx;
+    if (!ctx) return;
+    const exprStr = document.getElementById('graph-expr').value.trim();
+    const xMin    = parseFloat(document.getElementById('graph-xmin').value);
+    const xMax    = parseFloat(document.getElementById('graph-xmax').value);
+    const scale   = parseFloat(document.getElementById('graph-scale').value) || 40;
+
+    if (!exprStr || isNaN(xMin) || isNaN(xMax) || xMin >= xMax) return;
+
+    const path = buildGraphPath(exprStr, xMin, xMax, scale, ctx.axisOrigin, ctx.axisXDir, ctx.axisYDir);
+    if (!path) {
+      document.getElementById('graph-expr').style.outline = '2px solid #f38ba8';
+      setTimeout(() => { document.getElementById('graph-expr').style.outline = ''; }, 800);
+      return;
+    }
+    document.getElementById('graph-modal').classList.add('hidden');
+    _pendingGraphCtx = null;
+    canvas.add(path);
+    canvas.renderAll();
+    switchToSelect();
+  }
+
+  function cancelGraph() {
+    document.getElementById('graph-modal').classList.add('hidden');
+    _pendingGraphCtx = null;
+  }
+
   // ── Projection tool ──
   function buildProjectionPreview(start, end) {
     const d = `M ${start.x} ${start.y} L ${start.x} ${end.y} M ${start.x} ${start.y} L ${end.x} ${start.y}`;
@@ -924,6 +1055,7 @@ const Tools = (() => {
     confirmText, cancelText,
     confirmAngle, cancelAngle,
     confirmAxisRatio, cancelAxisRatio,
+    confirmGraph, cancelGraph,
     toggleGridSnap, setGridSize,
     toggleLock,
   };
