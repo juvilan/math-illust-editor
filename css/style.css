@@ -247,6 +247,21 @@ span#font-size-val {
   color: #cdd6f4;
 }
 .shortcut-table tr:hover td { background: #2a2a3a; }
+.modal-hint {
+  background: #1e2a3a;
+  border-left: 3px solid #89b4fa;
+  border-radius: 0 4px 4px 0;
+  padding: 7px 10px;
+  font-size: 11px;
+  color: #a6c8ff;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+.modal-hint b {
+  color: #cdd6f4;
+  font-weight: 600;
+}
+
 .shortcut-section {
   background: #1e1e2e !important;
   color: #89dceb;
