@@ -54,10 +54,12 @@
 
   <div id="main">
     <div id="sidebar">
+      <!-- 선택 -->
       <button class="tool-btn active" data-tool="select" title="선택 (V)">
         <span class="tool-icon">↖</span><small>선택</small>
       </button>
       <div class="tool-divider"></div>
+      <!-- 선 도구 -->
       <button class="tool-btn" data-tool="line" title="선분 (L)">
         <span class="tool-icon">—</span><small>선분</small>
       </button>
@@ -70,6 +72,8 @@
       <button class="tool-btn" data-tool="double-arrow" title="양방향 화살표">
         <span class="tool-icon">↔</span><small>양방향</small>
       </button>
+      <div class="tool-divider"></div>
+      <!-- 좌표·그래프 -->
       <button class="tool-btn" data-tool="axis" title="좌표축 (X) — 클릭해서 크기 입력 후 생성">
         <span class="tool-icon">⊕</span><small>좌표축</small>
       </button>
@@ -79,26 +83,30 @@
       <button class="tool-btn" data-tool="projection" title="점투영 (P)">
         <span class="tool-icon">⌐</span><small>투영</small>
       </button>
-      <button class="tool-btn" data-tool="text" title="텍스트 (T)">
-        <span class="tool-icon">T</span><small>텍스트</small>
-      </button>
+      <div class="tool-divider"></div>
+      <!-- 점·텍스트 -->
       <button class="tool-btn" data-tool="point" title="점 (닫힌)">
         <span class="tool-icon">●</span><small>점</small>
       </button>
       <button class="tool-btn" data-tool="open-point" title="점 (열린)">
         <span class="tool-icon">○</span><small>열린점</small>
       </button>
+      <button class="tool-btn" data-tool="text" title="텍스트 (T)">
+        <span class="tool-icon">T</span><small>텍스트</small>
+      </button>
       <div class="tool-divider"></div>
+      <!-- 측정·채우기 -->
       <button class="tool-btn" data-tool="angle" title="각도 표시 (G)">
         <span class="tool-icon">∠</span><small>각도</small>
-      </button>
-      <button class="tool-btn" data-tool="bucket" title="버킷 채우기 (F)">
-        <span class="tool-icon">🪣</span><small>채우기</small>
       </button>
       <button class="tool-btn" data-tool="arc-dim" title="호 치수 (R)">
         <span class="tool-icon">⌒</span><small>호치수</small>
       </button>
+      <button class="tool-btn" data-tool="bucket" title="버킷 채우기 (F)">
+        <span class="tool-icon">🪣</span><small>채우기</small>
+      </button>
       <div class="tool-divider"></div>
+      <!-- 복제 도장 -->
       <button class="tool-btn" data-tool="clone" title="복제 도장 (C) — Alt+클릭: 소스 설정">
         <span class="tool-icon">🖌</span><small>도장</small>
       </button>

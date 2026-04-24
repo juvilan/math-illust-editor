@@ -4,7 +4,7 @@ const CanvasManager = (() => {
   let redoStack = [];
   let historyLock = false;
 
-  const CUSTOM_PROPS = ['_isTempPreview', '_type', '_latex', '_axisData', '_locked'];
+  const CUSTOM_PROPS = ['_isTempPreview', '_type', '_latex', '_axisData', '_locked', '_graphExpr', '_graphXMin', '_graphXMax', '_graphScale'];
 
   let _snapshotTimer = null;
   function snapshot() {
@@ -39,27 +39,35 @@ const CanvasManager = (() => {
 
   function loadImage(file) {
     return new Promise((resolve) => {
-      const url = URL.createObjectURL(file);
-      fabric.Image.fromURL(url, (img) => {
-        const maxW = window.innerWidth - 80;
-        const maxH = window.innerHeight - 60;
-        const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const url = e.target.result; // data URL → SVG export에 배경 embed 가능
+        _loadImageFromURL(url, resolve);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 
-        canvas.setWidth(Math.round(img.width * scale));
-        canvas.setHeight(Math.round(img.height * scale));
+  function _loadImageFromURL(url, resolve) {
+    fabric.Image.fromURL(url, (img) => {
+      const maxW = window.innerWidth - 80;
+      const maxH = window.innerHeight - 60;
+      const scale = Math.min(maxW / img.width, maxH / img.height, 1);
 
-        img.set({ scaleX: scale, scaleY: scale, left: 0, top: 0,
-          selectable: false, evented: false, originX: 'left', originY: 'top' });
+      canvas.setWidth(Math.round(img.width * scale));
+      canvas.setHeight(Math.round(img.height * scale));
 
-        canvas.clear();
-        canvas.setBackgroundImage(img, () => {
-          canvas.renderAll();
-          document.getElementById('canvas-hint').style.display = 'none';
-          history = [];
-          redoStack = [];
-          _onModified();
-          resolve();
-        });
+      img.set({ scaleX: scale, scaleY: scale, left: 0, top: 0,
+        selectable: false, evented: false, originX: 'left', originY: 'top' });
+
+      canvas.clear();
+      canvas.setBackgroundImage(img, () => {
+        canvas.renderAll();
+        document.getElementById('canvas-hint').style.display = 'none';
+        history = [];
+        redoStack = [];
+        _onModified();
+        resolve();
       });
     });
   }
