@@ -4,7 +4,7 @@ const CanvasManager = (() => {
   let redoStack = [];
   let historyLock = false;
 
-  const CUSTOM_PROPS = ['_isTempPreview', '_type', '_latex', '_axisData', '_locked', '_graphExpr', '_graphXMin', '_graphXMax', '_graphScale', '_graphYScale'];
+  const CUSTOM_PROPS = ['_isTempPreview', '_type', '_latex', '_axisData', '_locked', '_graphExpr', '_graphXMin', '_graphXMax', '_graphScale', '_graphYScale', '_graphOriginX', '_graphOriginY', '_graphXDirX', '_graphXDirY'];
 
   let _snapshotTimer = null;
   function snapshot() {

@@ -201,6 +201,12 @@ const Tools = (() => {
   function onDblClick(e) {
     if (currentTool !== 'select') return;
 
+    // 함수 그래프 더블클릭 → 수식·범위·비율 수정
+    if (e.target && e.target._type === 'graph') {
+      showGraphEditModal(e.target);
+      return;
+    }
+
     // 좌표축 더블클릭 → 축 길이 조정
     if (e.target && e.target._type === 'axis') {
       showAxisRatioModal(e.target);
@@ -737,9 +743,16 @@ const Tools = (() => {
       setTimeout(() => { document.getElementById('graph-expr').style.outline = ''; }, 800);
       return;
     }
+    path._graphOriginX = ctx.axisOrigin.x;
+    path._graphOriginY = ctx.axisOrigin.y;
+    path._graphXDirX   = ctx.axisXDir.x;
+    path._graphXDirY   = ctx.axisXDir.y;
+
     document.getElementById('graph-modal').classList.add('hidden');
+    if (ctx.existingPath) canvas.remove(ctx.existingPath);
     _pendingGraphCtx = null;
     canvas.add(path);
+    canvas.setActiveObject(path);
     canvas.renderAll();
     switchToSelect();
   }
@@ -747,6 +760,29 @@ const Tools = (() => {
   function cancelGraph() {
     document.getElementById('graph-modal').classList.add('hidden');
     _pendingGraphCtx = null;
+  }
+
+  function showGraphEditModal(existing) {
+    const axisOrigin = { x: existing._graphOriginX || 0, y: existing._graphOriginY || 0 };
+    const axisXDir   = { x: existing._graphXDirX !== undefined ? existing._graphXDirX : 1,
+                         y: existing._graphXDirY !== undefined ? existing._graphXDirY : 0 };
+    const axisYDir   = { x: axisXDir.y, y: -axisXDir.x };
+
+    _pendingGraphCtx = { axisOrigin, axisXDir, axisYDir, existingPath: existing };
+
+    document.getElementById('graph-expr').value   = existing._graphExpr  || '';
+    document.getElementById('graph-xmin').value   = existing._graphXMin  !== undefined ? existing._graphXMin  : -5;
+    document.getElementById('graph-xmax').value   = existing._graphXMax  !== undefined ? existing._graphXMax  : 5;
+    document.getElementById('graph-scale').value  = existing._graphScale  || 40;
+    document.getElementById('graph-yscale').value = existing._graphYScale || existing._graphScale || 40;
+    document.getElementById('graph-scale-hint').textContent = '';
+    document.getElementById('graph-expr').style.outline = '';
+    document.getElementById('graph-modal').classList.remove('hidden');
+    setTimeout(() => {
+      const input = document.getElementById('graph-expr');
+      input.select();
+      input.focus();
+    }, 50);
   }
 
   // ── Projection tool ──
