@@ -150,6 +150,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-delete').addEventListener('click', deleteActive);
 
+  // ── 대칭 / 회전 ──
+  function transformActive(fn) {
+    const obj = canvas.getActiveObject();
+    if (!obj) return;
+    fn(obj);
+    obj.setCoords();
+    canvas.renderAll();
+  }
+
+  document.getElementById('btn-flip-x').addEventListener('click', () => {
+    transformActive(obj => obj.set({ flipX: !obj.flipX }));
+  });
+
+  document.getElementById('btn-flip-y').addEventListener('click', () => {
+    transformActive(obj => obj.set({ flipY: !obj.flipY }));
+  });
+
+  document.getElementById('btn-rotate-ccw').addEventListener('click', () => {
+    transformActive(obj => obj.set({ angle: ((obj.angle || 0) - 90 + 360) % 360 }));
+  });
+
+  document.getElementById('btn-rotate-cw').addEventListener('click', () => {
+    transformActive(obj => obj.set({ angle: ((obj.angle || 0) + 90) % 360 }));
+  });
+
+  function applyRotateDeg() {
+    const deg = parseFloat(document.getElementById('rotate-deg-input').value) || 0;
+    transformActive(obj => obj.set({ angle: ((obj.angle || 0) + deg) % 360 }));
+  }
+
+  document.getElementById('btn-rotate-deg').addEventListener('click', applyRotateDeg);
+  document.getElementById('rotate-deg-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') applyRotateDeg();
+  });
+
   // ── Shortcut overlay ──
   document.getElementById('shortcut-close').addEventListener('click', () => {
     document.getElementById('shortcut-modal').classList.add('hidden');
