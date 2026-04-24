@@ -646,13 +646,15 @@ const Tools = (() => {
         const scale = g.scaleX || 1;
         if (tick.spacing > 0) {
           const pxPerUnit = tick.spacing * scale;
-          document.getElementById('graph-scale').value = Math.round(pxPerUnit);
-          document.getElementById('graph-scale-hint').textContent = `축에서 감지: ${Math.round(pxPerUnit)}px/단위`;
+          document.getElementById('graph-scale').value  = Math.round(pxPerUnit);
+          document.getElementById('graph-yscale').value = Math.round(pxPerUnit);
+          document.getElementById('graph-scale-hint').textContent = `축 감지`;
           document.getElementById('graph-xmin').value = -Math.floor(data.xNegLen / tick.spacing);
           document.getElementById('graph-xmax').value =  Math.floor(data.xLen    / tick.spacing);
         } else {
-          document.getElementById('graph-scale').value = 40;
-          document.getElementById('graph-scale-hint').textContent = '수동 입력 (축 눈금 없음)';
+          document.getElementById('graph-scale').value  = 40;
+          document.getElementById('graph-yscale').value = 40;
+          document.getElementById('graph-scale-hint').textContent = '(눈금 없음)';
           document.getElementById('graph-xmin').value = -5;
           document.getElementById('graph-xmax').value =  5;
         }
@@ -660,7 +662,8 @@ const Tools = (() => {
     }
 
     if (axisGroups.length === 0) {
-      document.getElementById('graph-scale').value = 40;
+      document.getElementById('graph-scale').value  = 40;
+      document.getElementById('graph-yscale').value = 40;
       document.getElementById('graph-scale-hint').textContent = '';
       document.getElementById('graph-xmin').value = -5;
       document.getElementById('graph-xmax').value =  5;
@@ -680,16 +683,16 @@ const Tools = (() => {
     return _SAFE_RE.test(expr.replace(_MATH_NAMES, '1'));
   }
 
-  function buildGraphPath(exprStr, xMin, xMax, pixelsPerUnit, origin, xDir, yDir) {
+  function buildGraphPath(exprStr, xMin, xMax, xScale, yScale, origin, xDir, yDir) {
     if (!_isSafeMathExpr(exprStr)) return null;
     const fnBody = `const {abs,acos,asin,atan,atan2,ceil,cos,exp,floor,log,log2,max,min,pow,round,sign,sin,sqrt,tan,PI,E}=Math; return (${exprStr});`;
     let fn;
     try { fn = new Function('x', fnBody); } catch (_) { return null; }
 
-    const steps    = Math.min(Math.ceil(Math.abs(xMax - xMin) * pixelsPerUnit), 2000);
-    const maxJump  = pixelsPerUnit * 10;
-    let d          = '';
-    let prevCy     = null;
+    const steps   = Math.min(Math.ceil(Math.abs(xMax - xMin) * xScale), 2000);
+    const maxJump = yScale * 10;
+    let d         = '';
+    let prevCy    = null;
 
     for (let i = 0; i <= steps; i++) {
       const x = xMin + (i / steps) * (xMax - xMin);
@@ -697,8 +700,8 @@ const Tools = (() => {
       try { y = fn(x); } catch (_) { prevCy = null; continue; }
       if (!isFinite(y) || isNaN(y)) { prevCy = null; continue; }
 
-      const cx = origin.x + x * pixelsPerUnit * xDir.x + y * pixelsPerUnit * yDir.x;
-      const cy = origin.y + x * pixelsPerUnit * xDir.y + y * pixelsPerUnit * yDir.y;
+      const cx = origin.x + x * xScale * xDir.x + y * yScale * yDir.x;
+      const cy = origin.y + x * xScale * xDir.y + y * yScale * yDir.y;
 
       if (prevCy !== null && Math.abs(cy - prevCy) > maxJump) { prevCy = null; }
       d += prevCy === null ? `M ${cx} ${cy} ` : `L ${cx} ${cy} `;
@@ -708,11 +711,12 @@ const Tools = (() => {
     if (!d.trim()) return null;
 
     const path = new fabric.Path(d, { stroke: color, strokeWidth, fill: '', lockUniScaling: true });
-    path._type       = 'graph';
-    path._graphExpr  = exprStr;
-    path._graphXMin  = xMin;
-    path._graphXMax  = xMax;
-    path._graphScale = pixelsPerUnit;
+    path._type        = 'graph';
+    path._graphExpr   = exprStr;
+    path._graphXMin   = xMin;
+    path._graphXMax   = xMax;
+    path._graphScale  = xScale;
+    path._graphYScale = yScale;
     return path;
   }
 
@@ -722,11 +726,12 @@ const Tools = (() => {
     const exprStr = document.getElementById('graph-expr').value.trim();
     const xMin    = parseFloat(document.getElementById('graph-xmin').value);
     const xMax    = parseFloat(document.getElementById('graph-xmax').value);
-    const scale   = parseFloat(document.getElementById('graph-scale').value) || 40;
+    const xScale  = parseFloat(document.getElementById('graph-scale').value)  || 40;
+    const yScale  = parseFloat(document.getElementById('graph-yscale').value) || xScale;
 
     if (!exprStr || isNaN(xMin) || isNaN(xMax) || xMin >= xMax) return;
 
-    const path = buildGraphPath(exprStr, xMin, xMax, scale, ctx.axisOrigin, ctx.axisXDir, ctx.axisYDir);
+    const path = buildGraphPath(exprStr, xMin, xMax, xScale, yScale, ctx.axisOrigin, ctx.axisXDir, ctx.axisYDir);
     if (!path) {
       document.getElementById('graph-expr').style.outline = '2px solid #f38ba8';
       setTimeout(() => { document.getElementById('graph-expr').style.outline = ''; }, 800);
