@@ -93,12 +93,18 @@
         <span class="tool-icon">⌐</span><small>투영</small>
       </button>
       <div class="tool-divider"></div>
-      <!-- 점·텍스트 -->
+      <!-- 점·도형·텍스트 -->
       <button class="tool-btn" data-tool="point" title="점 (닫힌)">
         <span class="tool-icon">●</span><small>점</small>
       </button>
       <button class="tool-btn" data-tool="open-point" title="점 (열린)">
         <span class="tool-icon">○</span><small>열린점</small>
+      </button>
+      <button class="tool-btn" data-tool="circle" title="원 (O) — 드래그, Shift: 정원">
+        <span class="tool-icon">◯</span><small>원</small>
+      </button>
+      <button class="tool-btn" data-tool="ellipse" title="타원 — 드래그, Shift: 정원">
+        <span class="tool-icon">⬭</span><small>타원</small>
       </button>
       <button class="tool-btn" data-tool="text" title="텍스트 (T)">
         <span class="tool-icon">T</span><small>텍스트</small>
@@ -122,9 +128,9 @@
     </div>
 
     <div id="canvas-container">
+      <div id="grid-overlay" class="hidden"></div>
       <canvas id="main-canvas"></canvas>
       <canvas id="clone-overlay" style="position:absolute;top:0;left:0;z-index:10;display:none;cursor:crosshair;"></canvas>
-      <div id="canvas-hint">📂 PNG 파일을 불러오세요</div>
     </div>
   </div>
 </div>
@@ -277,6 +283,7 @@
         <tr><td>좌표축</td><td colspan="2">X</td></tr>
         <tr><td>투영</td><td colspan="2">P</td></tr>
         <tr><td>그래프</td><td colspan="2">E</td></tr>
+        <tr><td>원</td><td colspan="2">O</td></tr>
         <tr><td>복제도장</td><td colspan="2">C</td></tr>
         <tr><td colspan="3" class="shortcut-section">편집</td></tr>
         <tr><td>복사</td><td>⌘C</td><td>Ctrl+C</td></tr>

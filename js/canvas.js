@@ -63,7 +63,6 @@ const CanvasManager = (() => {
       canvas.clear();
       canvas.setBackgroundImage(img, () => {
         canvas.renderAll();
-        document.getElementById('canvas-hint').style.display = 'none';
         history = [];
         redoStack = [];
         _onModified();
@@ -90,7 +89,6 @@ const CanvasManager = (() => {
         });
         canvas.add(svg);
         canvas.renderAll();
-        document.getElementById('canvas-hint').style.display = 'none';
         resolve();
       });
     });
@@ -104,7 +102,6 @@ const CanvasManager = (() => {
         canvas.loadFromJSON(JSON.parse(e.target.result), () => {
           canvas.renderAll();
           historyLock = false;
-          document.getElementById('canvas-hint').style.display = 'none';
           resolve();
         });
       };

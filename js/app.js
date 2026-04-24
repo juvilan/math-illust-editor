@@ -128,12 +128,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-lock').textContent = locked ? '🔓 잠금해제' : '🔒 잠금';
   });
 
+  const _gridOverlay = document.getElementById('grid-overlay');
+
   document.getElementById('btn-grid-snap').addEventListener('click', () => {
     const on = Tools.toggleGridSnap();
     document.getElementById('btn-grid-snap').classList.toggle('active', on);
+    _gridOverlay.classList.toggle('hidden', !on);
   });
   document.getElementById('grid-size-input').addEventListener('change', (e) => {
-    Tools.setGridSize(e.target.value);
+    const sz = Math.max(2, parseInt(e.target.value) || 10);
+    Tools.setGridSize(sz);
+    _gridOverlay.style.backgroundSize = `${sz}px ${sz}px`;
   });
 
   function deleteActive() {
@@ -353,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const toolMap = { v: 'select', l: 'line', d: 'dashed-line', a: 'arrow', t: 'text', g: 'angle', f: 'bucket', r: 'arc-dim', x: 'axis', e: 'graph', p: 'projection', c: 'clone' };
+    const toolMap = { v: 'select', l: 'line', d: 'dashed-line', a: 'arrow', t: 'text', g: 'angle', f: 'bucket', r: 'arc-dim', x: 'axis', e: 'graph', o: 'circle', p: 'projection', c: 'clone' };
     const key = e.key.toLowerCase();
 
     if (toolMap[key] && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {

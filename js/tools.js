@@ -182,7 +182,7 @@ const Tools = (() => {
     const p = snapAngle(startPt, ptSnap(e), e);
     removePreview();
 
-    const obj = buildObject(startPt, p);
+    const obj = buildObject(startPt, p, e);
     if (obj) {
       obj._isTempPreview = true;
       obj.set({ opacity: 0.5, selectable: false, evented: false });
@@ -227,7 +227,7 @@ const Tools = (() => {
       return;
     }
 
-    const obj = buildObject(startPt, p);
+    const obj = buildObject(startPt, p, e);
     if (obj) {
       canvas.add(obj);
       canvas.renderAll();
@@ -329,7 +329,7 @@ const Tools = (() => {
   }
 
   // ── Build object by tool ──
-  function buildObject(start, end) {
+  function buildObject(start, end, e) {
     switch (currentTool) {
       case 'arrow':        return buildArrow(start, end, false);
       case 'double-arrow': return buildArrow(start, end, true);
@@ -337,8 +337,29 @@ const Tools = (() => {
       case 'dashed-line':  return buildLine(start, end, true);
       case 'arc-dim':      return buildArcDimPreview(start, end);
       case 'projection':   return buildProjectionPreview(start, end);
+      case 'circle':       return buildCircleOrEllipse(start, end, true,  e);
+      case 'ellipse':      return buildCircleOrEllipse(start, end, false, e);
       default:             return null;
     }
+  }
+
+  function buildCircleOrEllipse(start, end, forceCircle, e) {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    let rx = Math.abs(dx) / 2;
+    let ry = Math.abs(dy) / 2;
+    const shift = e && e.e && e.e.shiftKey;
+    if (forceCircle || shift) { const r = Math.max(rx, ry); rx = ry = r; }
+    if (rx < 2 && ry < 2) return null;
+    const cx = start.x + (forceCircle || shift ? Math.sign(dx) * rx : dx / 2);
+    const cy = start.y + (forceCircle || shift ? Math.sign(dy) * ry : dy / 2);
+    return new fabric.Ellipse({
+      left: cx, top: cy,
+      rx, ry,
+      fill: '', stroke: color, strokeWidth,
+      originX: 'center', originY: 'center',
+      lockUniScaling: forceCircle,
+    });
   }
 
   // 호치수 미리보기 (라벨 없는 점선 호)

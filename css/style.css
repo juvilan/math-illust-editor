@@ -247,6 +247,18 @@ span#font-size-val {
   color: #cdd6f4;
 }
 .shortcut-table tr:hover td { background: #2a2a3a; }
+#grid-overlay {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  background-image:
+    linear-gradient(to right, rgba(166,173,200,0.18) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(166,173,200,0.18) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
 .modal-hint {
   background: #1e2a3a;
   border-left: 3px solid #89b4fa;
