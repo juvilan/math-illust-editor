@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   const canvas = CanvasManager.init();
   Tools.init(canvas);
-  CloneTool.init(canvas);
 
   // ── File load ──
   document.getElementById('file-input').addEventListener('change', async (e) => {
@@ -27,33 +26,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Tool buttons ──
   document.querySelectorAll('.tool-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const prev = Tools.getCurrentTool();
-      if (prev === 'clone') CloneTool.deactivate();
       document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      const next = btn.dataset.tool;
-      Tools.setTool(next);
-      if (next === 'clone') {
-        CloneTool.activate();
-        document.getElementById('clone-hint').classList.remove('hidden');
-      } else {
-        document.getElementById('clone-hint').classList.add('hidden');
-      }
+      Tools.setTool(btn.dataset.tool);
     });
   });
 
   // 도구 자동 복귀 이벤트 (텍스트/각도/호치수 배치 후 select로)
   document.addEventListener('tool:switch', (e) => {
-    if (Tools.getCurrentTool() === 'clone') CloneTool.deactivate();
     document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
     const btn = document.querySelector(`.tool-btn[data-tool="${e.detail}"]`);
     if (btn) btn.classList.add('active');
-  });
-
-  // ── Clone brush size ──
-  document.getElementById('clone-brush').addEventListener('input', (e) => {
-    document.getElementById('clone-brush-val').textContent = e.target.value;
-    CloneTool.setBrushSize(e.target.value);
   });
 
   // 단일/그룹/다중선택 모두 처리하는 헬퍼
@@ -115,6 +98,11 @@ document.addEventListener('DOMContentLoaded', () => {
       canvas.renderAll();
     }
   });
+
+  // ── 선·화살표·점 스타일 ──
+  document.getElementById('line-style').addEventListener('change', (e) => Tools.setLineStyle(e.target.value));
+  document.getElementById('arrow-style').addEventListener('change', (e) => Tools.setArrowStyle(e.target.value));
+  document.getElementById('point-style').addEventListener('change', (e) => Tools.setPointStyle(e.target.value));
 
   // ── Actions ──
   document.getElementById('btn-export').addEventListener('click', () => CanvasManager.exportPNG());
@@ -358,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const toolMap = { v: 'select', l: 'line', d: 'dashed-line', a: 'arrow', t: 'text', g: 'angle', f: 'bucket', r: 'arc-dim', x: 'axis', e: 'graph', o: 'circle', p: 'projection', c: 'clone' };
+    const toolMap = { v: 'select', l: 'line', t: 'text', g: 'angle', f: 'bucket', r: 'arc-dim', x: 'axis', e: 'graph', o: 'circle', s: 'rect', p: 'projection' };
     const key = e.key.toLowerCase();
 
     if (toolMap[key] && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {

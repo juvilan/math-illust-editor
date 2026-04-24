@@ -37,11 +37,24 @@
       <span id="opacity-val">30%</span>
       <button id="btn-grid-snap" title="그리드 스냅 ON/OFF">⊞ 스냅</button>
       <input type="number" id="grid-size-input" min="2" max="100" value="10" style="width:44px" title="그리드 크기(px)">
-      <span id="clone-brush-wrap" style="display:none;align-items:center;gap:4px;">
-        <label>브러시</label>
-        <input type="range" id="clone-brush" min="4" max="80" value="20">
-        <span id="clone-brush-val">20</span>
-      </span>
+    </div>
+    <div class="toolbar-group">
+      <label>선</label>
+      <select id="line-style" title="선 스타일">
+        <option value="solid">실선</option>
+        <option value="dashed">점선</option>
+      </select>
+      <label>화살표</label>
+      <select id="arrow-style" title="화살표 방향">
+        <option value="none">없음</option>
+        <option value="end">→ 한쪽</option>
+        <option value="both">↔ 양쪽</option>
+      </select>
+      <label>점</label>
+      <select id="point-style" title="점 종류">
+        <option value="closed">● 닫힘</option>
+        <option value="open">○ 열림</option>
+      </select>
     </div>
     <div class="toolbar-group">
       <button id="btn-undo">↩ 실행취소</button>
@@ -58,7 +71,6 @@
       <span>°</span>
       <button id="btn-rotate-deg">회전</button>
     </div>
-    <div id="clone-hint" class="hint-badge hidden">Alt+클릭: 소스 설정 · 드래그: 복사</div>
   </div>
 
   <div id="main">
@@ -69,17 +81,8 @@
       </button>
       <div class="tool-divider"></div>
       <!-- 선 도구 -->
-      <button class="tool-btn" data-tool="line" title="선분 (L)">
-        <span class="tool-icon">—</span><small>선분</small>
-      </button>
-      <button class="tool-btn" data-tool="dashed-line" title="점선 (D)">
-        <span class="tool-icon">╌</span><small>점선</small>
-      </button>
-      <button class="tool-btn" data-tool="arrow" title="화살표 (A)">
-        <span class="tool-icon">→</span><small>화살표</small>
-      </button>
-      <button class="tool-btn" data-tool="double-arrow" title="양방향 화살표">
-        <span class="tool-icon">↔</span><small>양방향</small>
+      <button class="tool-btn" data-tool="line" title="선 (L) — 툴바에서 스타일·화살표 선택">
+        <span class="tool-icon">—</span><small>선</small>
       </button>
       <div class="tool-divider"></div>
       <!-- 좌표·그래프 -->
@@ -94,17 +97,17 @@
       </button>
       <div class="tool-divider"></div>
       <!-- 점·도형·텍스트 -->
-      <button class="tool-btn" data-tool="point" title="점 (닫힌)">
+      <button class="tool-btn" data-tool="point" title="점 — 툴바에서 닫힘/열림 선택">
         <span class="tool-icon">●</span><small>점</small>
-      </button>
-      <button class="tool-btn" data-tool="open-point" title="점 (열린)">
-        <span class="tool-icon">○</span><small>열린점</small>
       </button>
       <button class="tool-btn" data-tool="circle" title="원 (O) — 드래그, Shift: 정원">
         <span class="tool-icon">◯</span><small>원</small>
       </button>
       <button class="tool-btn" data-tool="ellipse" title="타원 — 드래그, Shift: 정원">
         <span class="tool-icon">⬭</span><small>타원</small>
+      </button>
+      <button class="tool-btn" data-tool="rect" title="직사각형 (S) — Shift: 정사각형">
+        <span class="tool-icon">▭</span><small>직사각형</small>
       </button>
       <button class="tool-btn" data-tool="text" title="텍스트 (T)">
         <span class="tool-icon">T</span><small>텍스트</small>
@@ -120,17 +123,11 @@
       <button class="tool-btn" data-tool="bucket" title="버킷 채우기 (F)">
         <span class="tool-icon">🪣</span><small>채우기</small>
       </button>
-      <div class="tool-divider"></div>
-      <!-- 복제 도장 -->
-      <button class="tool-btn" data-tool="clone" title="복제 도장 (C) — Alt+클릭: 소스 설정">
-        <span class="tool-icon">🖌</span><small>도장</small>
-      </button>
     </div>
 
     <div id="canvas-container">
       <div id="grid-overlay" class="hidden"></div>
       <canvas id="main-canvas"></canvas>
-      <canvas id="clone-overlay" style="position:absolute;top:0;left:0;z-index:10;display:none;cursor:crosshair;"></canvas>
     </div>
   </div>
 </div>
@@ -273,9 +270,10 @@
       <tbody>
         <tr><td colspan="3" class="shortcut-section">도구 선택</td></tr>
         <tr><td>선택</td><td colspan="2">V</td></tr>
-        <tr><td>선분</td><td colspan="2">L</td></tr>
-        <tr><td>점선</td><td colspan="2">D</td></tr>
-        <tr><td>화살표</td><td colspan="2">A</td></tr>
+        <tr><td>선 (실선/점선/화살표는 툴바 선택)</td><td colspan="2">L</td></tr>
+        <tr><td>점 (닫힘/열림은 툴바 선택)</td><td colspan="2">없음</td></tr>
+        <tr><td>원</td><td colspan="2">O</td></tr>
+        <tr><td>직사각형</td><td colspan="2">S</td></tr>
         <tr><td>텍스트</td><td colspan="2">T</td></tr>
         <tr><td>각도</td><td colspan="2">G</td></tr>
         <tr><td>채우기</td><td colspan="2">F</td></tr>
@@ -283,8 +281,6 @@
         <tr><td>좌표축</td><td colspan="2">X</td></tr>
         <tr><td>투영</td><td colspan="2">P</td></tr>
         <tr><td>그래프</td><td colspan="2">E</td></tr>
-        <tr><td>원</td><td colspan="2">O</td></tr>
-        <tr><td>복제도장</td><td colspan="2">C</td></tr>
         <tr><td colspan="3" class="shortcut-section">편집</td></tr>
         <tr><td>복사</td><td>⌘C</td><td>Ctrl+C</td></tr>
         <tr><td>붙여넣기</td><td>⌘V</td><td>Ctrl+V</td></tr>
@@ -296,7 +292,7 @@
         <tr><td>10px 이동</td><td colspan="2">Shift+방향키</td></tr>
         <tr><td colspan="3" class="shortcut-section">기타</td></tr>
         <tr><td>45° 스냅</td><td colspan="2">Shift+드래그</td></tr>
-        <tr><td>복제도장 소스</td><td colspan="2">Alt+클릭</td></tr>
+        <tr><td>정원/정사각형</td><td colspan="2">Shift+드래그</td></tr>
         <tr><td>이 창 닫기</td><td colspan="2">? 또는 Esc</td></tr>
       </tbody>
     </table>
@@ -312,7 +308,6 @@
 <script src="js/canvas.js"></script>
 <script src="js/fill.js"></script>
 <script src="js/tools.js"></script>
-<script src="js/clone.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

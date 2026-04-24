@@ -69,6 +69,9 @@ const Tools = (() => {
   let fillOpacity = 0.3;
   let fontSize = 18;
   let dashPattern = [8, 6];
+  let lineStyle  = 'solid';   // 'solid' | 'dashed'
+  let arrowStyle = 'none';    // 'none' | 'end' | 'both'
+  let pointStyle = 'closed';  // 'closed' | 'open'
 
   // Text/angle modal callbacks
   let textCallback = null;
@@ -105,6 +108,9 @@ const Tools = (() => {
   function setFillOpacity(o) { fillOpacity = parseFloat(o) / 100; }
   function setFontSize(s) { fontSize = parseInt(s); }
   function setDashPattern(v) { dashPattern = v.split(',').map(Number); }
+  function setLineStyle(v)  { lineStyle  = v; }
+  function setArrowStyle(v) { arrowStyle = v; }
+  function setPointStyle(v) { pointStyle = v; }
   function getCurrentTool() { return currentTool; }
 
   // 도구 배치 후 select로 자동 복귀
@@ -157,8 +163,8 @@ const Tools = (() => {
       return;
     }
 
-    if (currentTool === 'point' || currentTool === 'open-point') {
-      canvas.add(buildPoint(p, currentTool === 'open-point'));
+    if (currentTool === 'point') {
+      canvas.add(buildPoint(p, pointStyle === 'open'));
       canvas.renderAll();
       return;
     }
@@ -331,15 +337,15 @@ const Tools = (() => {
   // ── Build object by tool ──
   function buildObject(start, end, e) {
     switch (currentTool) {
-      case 'arrow':        return buildArrow(start, end, false);
-      case 'double-arrow': return buildArrow(start, end, true);
-      case 'line':         return buildLine(start, end, false);
-      case 'dashed-line':  return buildLine(start, end, true);
-      case 'arc-dim':      return buildArcDimPreview(start, end);
-      case 'projection':   return buildProjectionPreview(start, end);
-      case 'circle':       return buildCircleOrEllipse(start, end, true,  e);
-      case 'ellipse':      return buildCircleOrEllipse(start, end, false, e);
-      default:             return null;
+      case 'line':
+        if (arrowStyle === 'none') return buildLine(start, end, lineStyle === 'dashed');
+        return buildArrow(start, end, arrowStyle === 'both', lineStyle === 'dashed');
+      case 'arc-dim':    return buildArcDimPreview(start, end);
+      case 'projection': return buildProjectionPreview(start, end);
+      case 'circle':     return buildCircleOrEllipse(start, end, true,  e);
+      case 'ellipse':    return buildCircleOrEllipse(start, end, false, e);
+      case 'rect':       return buildRect(start, end, e);
+      default:           return null;
     }
   }
 
@@ -442,8 +448,25 @@ const Tools = (() => {
     });
   }
 
+  // ── Rect ──
+  function buildRect(start, end, e) {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const shift = e && e.e && e.e.shiftKey;
+    let w = Math.abs(dx);
+    let h = Math.abs(dy);
+    if (shift) { w = h = Math.max(w, h); }
+    if (w < 2 && h < 2) return null;
+    return new fabric.Rect({
+      left: dx >= 0 ? start.x : start.x - w,
+      top:  dy >= 0 ? start.y : start.y - h,
+      width: w, height: h,
+      fill: '', stroke: color, strokeWidth,
+    });
+  }
+
   // ── Arrow (수능 교과서 스타일 — 날렵한 화살촉) ──
-  function buildArrow(start, end, bothSides) {
+  function buildArrow(start, end, bothSides, dashed) {
     const angle = Math.atan2(end.y - start.y, end.x - start.x);
     const sw = strokeWidth;
     const headLen = Math.max(12, sw * 6);
@@ -480,6 +503,7 @@ const Tools = (() => {
     return new fabric.Path(d, {
       stroke: color, strokeWidth: sw,
       fill: color,
+      strokeDashArray: dashed ? dashPattern : null,
       strokeLineCap: 'butt',
       strokeLineJoin: 'miter',
       lockUniScaling: true,
@@ -1188,6 +1212,7 @@ const Tools = (() => {
   return {
     init, setTool,
     setColor, setStrokeWidth, setFillOpacity, setFontSize, setDashPattern,
+    setLineStyle, setArrowStyle, setPointStyle,
     getCurrentTool,
     confirmText, cancelText,
     confirmAngle, cancelAngle,
