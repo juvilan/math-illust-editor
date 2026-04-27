@@ -72,6 +72,7 @@ const CanvasManager = (() => {
       });
 
       canvas.clear();
+      canvas.backgroundColor = '#ffffff';
       canvas.add(img);
       canvas.sendToBack(img);
       canvas.renderAll();
