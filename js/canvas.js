@@ -18,8 +18,13 @@ const CanvasManager = (() => {
       selection: true,
       preserveObjectStacking: true,
     });
-    canvas.setWidth(800);
-    canvas.setHeight(600);
+    const style = getComputedStyle(document.documentElement);
+    const railW = parseInt(style.getPropertyValue('--rail-w'))     || 100;
+    const inspW = parseInt(style.getPropertyValue('--insp-w'))     || 268;
+    const topH  = parseInt(style.getPropertyValue('--top-bar-h'))  || 56;
+    const optsH = parseInt(style.getPropertyValue('--opts-bar-h')) || 50;
+    canvas.setWidth( Math.max(900,  window.innerWidth  - railW - inspW - 4));
+    canvas.setHeight(Math.max(680,  window.innerHeight - topH  - optsH - 4));
 
     canvas.on('object:added',    _onModifiedFiltered);
     canvas.on('object:modified', _onModifiedFiltered);
@@ -57,12 +62,9 @@ const CanvasManager = (() => {
 
   function _loadImageFromURL(url, resolve) {
     fabric.Image.fromURL(url, (img) => {
-      const maxW = window.innerWidth - 80;
-      const maxH = window.innerHeight - 60;
+      const maxW = canvas.width  - 80;
+      const maxH = canvas.height - 80;
       const scale = Math.min(maxW / img.width, maxH / img.height, 1);
-
-      canvas.setWidth(Math.round(img.width * scale));
-      canvas.setHeight(Math.round(img.height * scale));
 
       img.set({ scaleX: scale, scaleY: scale, left: 0, top: 0,
         originX: 'left', originY: 'top',
