@@ -1052,6 +1052,11 @@ const Tools = (() => {
     path._graphXDirY   = ctx.axisXDir.y;
     path._graphFnKey   = fnKey;
     path._graphParams  = savedParams;
+    path._graphXMin    = xMin;
+    path._graphXMax    = xMax;
+    path._graphScale   = xScale;
+    path._graphYScale  = yScale;
+    if (fnKey === 'custom') path._graphExpr = exprStr;
 
     document.getElementById('graph-modal').classList.add('hidden');
     if (ctx.existingPath) canvas.remove(ctx.existingPath);
@@ -1065,6 +1070,47 @@ const Tools = (() => {
   function cancelGraph() {
     document.getElementById('graph-modal').classList.add('hidden');
     _pendingGraphCtx = null;
+  }
+
+  function rebuildGraphFromInspector(obj, xMin, xMax, xScale, yScale) {
+    const axisOrigin = { x: obj._graphOriginX || 0, y: obj._graphOriginY || 0 };
+    const axisXDir   = { x: obj._graphXDirX !== undefined ? obj._graphXDirX : 1,
+                         y: obj._graphXDirY !== undefined ? obj._graphXDirY : 0 };
+    const axisYDir   = { x: axisXDir.y, y: -axisXDir.x };
+
+    let exprStr;
+    const fnKey = obj._graphFnKey || 'custom';
+    const def   = GRAPH_FN_DEFS.find(d => d.key === fnKey);
+    if (def && def.build && obj._graphParams) {
+      exprStr = def.build(obj._graphParams);
+    } else {
+      exprStr = obj._graphExpr || '';
+    }
+    if (!exprStr) return;
+
+    const newPath = buildGraphPath(exprStr, xMin, xMax, xScale, yScale, axisOrigin, axisXDir, axisYDir);
+    if (!newPath) return;
+
+    newPath._graphOriginX = obj._graphOriginX;
+    newPath._graphOriginY = obj._graphOriginY;
+    newPath._graphXDirX   = obj._graphXDirX;
+    newPath._graphXDirY   = obj._graphXDirY;
+    newPath._graphFnKey   = fnKey;
+    newPath._graphParams  = obj._graphParams;
+    newPath._graphExpr    = obj._graphExpr;
+    newPath._graphXMin    = xMin;
+    newPath._graphXMax    = xMax;
+    newPath._graphScale   = xScale;
+    newPath._graphYScale  = yScale;
+    newPath.set({ stroke: obj.stroke, strokeWidth: obj.strokeWidth,
+                  strokeDashArray: obj.strokeDashArray });
+
+    canvas.remove(obj);
+    canvas.add(newPath);
+    canvas.setActiveObject(newPath);
+    canvas.renderAll();
+    CanvasManager.snapshot();
+    return newPath;
   }
 
   function showGraphEditModal(existing) {
@@ -1659,7 +1705,7 @@ const Tools = (() => {
     confirmAngle, cancelAngle,
     rebuildAxis, rebuildMathTextSize,
     confirmAxisRatio, cancelAxisRatio,
-    confirmGraph, cancelGraph, GRAPH_FN_DEFS,
+    confirmGraph, cancelGraph, rebuildGraphFromInspector, GRAPH_FN_DEFS,
     confirmPolygon, cancelPolygon,
     cancelArc,
     toggleGridSnap, setGridSize,

@@ -383,6 +383,18 @@ document.addEventListener('DOMContentLoaded', () => {
       axisSection.classList.add('hidden');
     }
 
+    // 그래프 설정 섹션
+    const graphSection = document.getElementById('insp-graph-section');
+    if (obj._type === 'graph' || (obj.type === 'path' && obj._graphFnKey !== undefined)) {
+      graphSection.classList.remove('hidden');
+      document.getElementById('insp-graph-xmin').value   = obj._graphXMin  !== undefined ? obj._graphXMin  : -5;
+      document.getElementById('insp-graph-xmax').value   = obj._graphXMax  !== undefined ? obj._graphXMax  : 5;
+      document.getElementById('insp-graph-scale').value  = obj._graphScale  || 40;
+      document.getElementById('insp-graph-yscale').value = obj._graphYScale || obj._graphScale || 40;
+    } else {
+      graphSection.classList.add('hidden');
+    }
+
     // 채우기 (닫힌 도형)
     const fillSection = document.getElementById('insp-fill-section');
     const fillableTypes = ['ellipse', 'rect', 'polygon', 'path', 'circle'];
@@ -835,6 +847,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (xLen > 0 && yLen > 0) {
       await Tools.rebuildAxis(obj, xLen, yLen, xNegLen, yNegLen, labelSize, { spacing, showTicks, showNumbers });
     }
+  });
+
+  // ── Inspector 그래프 적용 ──
+  document.getElementById('insp-graph-apply').addEventListener('click', () => {
+    const obj = canvas.getActiveObject();
+    if (!obj || obj._graphFnKey === undefined) return;
+    const xMin   = parseFloat(document.getElementById('insp-graph-xmin').value);
+    const xMax   = parseFloat(document.getElementById('insp-graph-xmax').value);
+    const xScale = parseFloat(document.getElementById('insp-graph-scale').value)  || 40;
+    const yScale = parseFloat(document.getElementById('insp-graph-yscale').value) || xScale;
+    if (isNaN(xMin) || isNaN(xMax) || xMin >= xMax) return;
+    const result = Tools.rebuildGraphFromInspector(obj, xMin, xMax, xScale, yScale);
+    if (result) _syncInspector(result);
   });
 
   // ── Text modal ──
