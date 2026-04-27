@@ -345,6 +345,36 @@
       <select id="graph-fn-type" style="flex:1"></select>
     </div>
     <div id="graph-params-area"></div>
+
+    <!-- 삼차함수 전용: 극값 입력 -->
+    <div id="cubic-extrema-area" class="hidden">
+      <div class="modal-hint" style="margin:2px 0 4px;font-size:11px">
+        극대·극소 좌표를 입력하면 계수(a~d)를 자동 계산합니다.
+      </div>
+      <div class="modal-row">
+        <label style="min-width:34px">극대</label>
+        <small style="color:var(--subtext0)">x</small>
+        <input type="number" id="cubic-max-x" step="0.5" style="width:56px" placeholder="x₁">
+        <small style="color:var(--subtext0)">y</small>
+        <input type="number" id="cubic-max-y" step="0.5" style="width:56px" placeholder="y₁">
+      </div>
+      <div class="modal-row">
+        <label style="min-width:34px">극소</label>
+        <small style="color:var(--subtext0)">x</small>
+        <input type="number" id="cubic-min-x" step="0.5" style="width:56px" placeholder="x₂">
+        <small style="color:var(--subtext0)">y</small>
+        <input type="number" id="cubic-min-y" step="0.5" style="width:56px" placeholder="y₂">
+      </div>
+      <div class="modal-row" id="cubic-inflection-row" style="display:none">
+        <label style="min-width:34px;color:var(--subtext0)">변곡점</label>
+        <span id="cubic-inflection-display" style="font-size:12px;color:var(--blue)"></span>
+      </div>
+      <div class="modal-row" style="gap:6px;margin-top:2px">
+        <button id="cubic-calc-btn" style="flex:1">계수 계산</button>
+        <button id="cubic-autofit-btn" style="flex:1">개형 맞춤</button>
+      </div>
+    </div>
+
     <div id="graph-custom-row" class="modal-row hidden">
       <label>f(x) =</label>
       <input type="text" id="graph-expr" placeholder="예: sin(x), x**2" style="flex:1">

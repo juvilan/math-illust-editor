@@ -524,6 +524,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const area      = document.getElementById('graph-params-area');
     const customRow = document.getElementById('graph-custom-row');
     area.innerHTML  = '';
+    // 삼차함수 극값 섹션 토글
+    document.getElementById('cubic-extrema-area').classList.toggle('hidden', fnKey !== 'cubic');
+    document.getElementById('cubic-inflection-row').style.display = 'none';
     if (!def || !def.build) { customRow.classList.remove('hidden'); return; }
     customRow.classList.add('hidden');
     const row = document.createElement('div');
@@ -546,6 +549,87 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     area.appendChild(row);
   }
+
+  // ── 삼차함수 극값 → 계수 계산 ──
+  function _cubicFromExtrema() {
+    const x1 = parseFloat(document.getElementById('cubic-max-x').value);
+    const y1 = parseFloat(document.getElementById('cubic-max-y').value);
+    const x2 = parseFloat(document.getElementById('cubic-min-x').value);
+    const y2 = parseFloat(document.getElementById('cubic-min-y').value);
+    if ([x1, y1, x2, y2].some(isNaN) || Math.abs(x1 - x2) < 0.001) return null;
+
+    const dx = x1 - x2;
+    const a  = 2 * (y2 - y1) / (dx * dx * dx);
+    const b  = -1.5 * a * (x1 + x2);
+    const c  = 3 * a * x1 * x2;
+    const d  = y1 - a * x1 ** 3 - b * x1 ** 2 - c * x1;
+    return { a, b, c, d, x1, y1, x2, y2 };
+  }
+
+  function _setCubicParams(coeffs) {
+    document.querySelectorAll('#graph-params-area .graph-param').forEach(inp => {
+      const k = inp.dataset.key;
+      if (k in coeffs) inp.value = parseFloat(coeffs[k].toFixed(4));
+    });
+    _updateGraphPreview();
+  }
+
+  document.getElementById('cubic-calc-btn').addEventListener('click', () => {
+    const r = _cubicFromExtrema();
+    if (!r) {
+      document.dispatchEvent(new CustomEvent('ui:toast', { detail: '극대·극소 좌표를 모두 입력하세요.' }));
+      return;
+    }
+    _setCubicParams(r);
+    // 변곡점 표시
+    const ix = (r.x1 + r.x2) / 2;
+    const iy = r.a * ix ** 3 + r.b * ix ** 2 + r.c * ix + r.d;
+    document.getElementById('cubic-inflection-display').textContent =
+      `(${parseFloat(ix.toFixed(3))}, ${parseFloat(iy.toFixed(3))})`;
+    document.getElementById('cubic-inflection-row').style.display = '';
+  });
+
+  document.getElementById('cubic-autofit-btn').addEventListener('click', () => {
+    const r = _cubicFromExtrema();
+    if (!r) {
+      document.dispatchEvent(new CustomEvent('ui:toast', { detail: '극대·극소 좌표를 모두 입력하세요.' }));
+      return;
+    }
+    _setCubicParams(r);
+
+    // x 범위: 극값 간격의 0.7배 여백
+    const margin = Math.abs(r.x2 - r.x1) * 0.7;
+    const xMin = Math.min(r.x1, r.x2) - margin;
+    const xMax = Math.max(r.x1, r.x2) + margin;
+    document.getElementById('graph-xmin').value = parseFloat(xMin.toFixed(2));
+    document.getElementById('graph-xmax').value = parseFloat(xMax.toFixed(2));
+
+    // y 범위 샘플링 → y 비율 자동 설정
+    const steps = 200;
+    let yMin = Infinity, yMax = -Infinity;
+    for (let i = 0; i <= steps; i++) {
+      const x = xMin + (xMax - xMin) * i / steps;
+      const y = r.a * x ** 3 + r.b * x ** 2 + r.c * x + r.d;
+      if (y < yMin) yMin = y;
+      if (y > yMax) yMax = y;
+    }
+    const yRange = yMax - yMin || 1;
+    const targetPx = 260; // 캔버스 높이의 ~70%에 해당하는 픽셀
+    const yscale = Math.round(Math.max(1, Math.min(500, targetPx / yRange)));
+    document.getElementById('graph-yscale').value = yscale;
+
+    // x 비율도 동일하게
+    const xRange = xMax - xMin || 1;
+    const xscale = Math.round(Math.max(1, Math.min(500, targetPx / xRange)));
+    document.getElementById('graph-scale').value = xscale;
+
+    // 변곡점 표시
+    const ix = (r.x1 + r.x2) / 2;
+    const iy = r.a * ix ** 3 + r.b * ix ** 2 + r.c * ix + r.d;
+    document.getElementById('cubic-inflection-display').textContent =
+      `(${parseFloat(ix.toFixed(3))}, ${parseFloat(iy.toFixed(3))})`;
+    document.getElementById('cubic-inflection-row').style.display = '';
+  });
 
   function _updateGraphPreview() {
     const fnKey   = _graphFnSelect.value;
