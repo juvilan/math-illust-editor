@@ -550,6 +550,53 @@ document.addEventListener('DOMContentLoaded', () => {
     area.appendChild(row);
   }
 
+  // ── 공용 그래프 개형 맞춤 ──
+  function _autoFitGraphScale() {
+    const fnKey = _graphFnSelect.value;
+    const def   = Tools.GRAPH_FN_DEFS.find(d => d.key === fnKey);
+    let exprStr;
+    if (!def || !def.build) {
+      exprStr = document.getElementById('graph-expr').value.trim();
+    } else {
+      const p = {};
+      document.querySelectorAll('#graph-params-area .graph-param').forEach(inp => {
+        p[inp.dataset.key] = parseFloat(inp.value) || 0;
+      });
+      exprStr = def.build(p);
+    }
+    if (!exprStr) return;
+
+    const xMin = parseFloat(document.getElementById('graph-xmin').value);
+    const xMax = parseFloat(document.getElementById('graph-xmax').value);
+    if (isNaN(xMin) || isNaN(xMax) || xMin >= xMax) return;
+
+    // 함수 샘플링
+    let fn;
+    try {
+      const body = `const {abs,acos,asin,atan,atan2,ceil,cos,exp,floor,log,log2,max,min,pow,round,sign,sin,sqrt,tan,PI,E}=Math; return (${exprStr});`;
+      fn = new Function('x', body);
+    } catch (_) { return; }
+
+    let yMin = Infinity, yMax = -Infinity;
+    const steps = 300;
+    for (let i = 0; i <= steps; i++) {
+      const x = xMin + (xMax - xMin) * i / steps;
+      let y;
+      try { y = fn(x); } catch (_) { continue; }
+      if (!isFinite(y) || isNaN(y)) continue;
+      if (y < yMin) yMin = y;
+      if (y > yMax) yMax = y;
+    }
+    if (!isFinite(yMin) || !isFinite(yMax)) return;
+
+    const yRange = yMax - yMin || 1;
+    const targetPx = 260;
+    const yscale = Math.round(Math.max(1, Math.min(500, targetPx / yRange)));
+    document.getElementById('graph-yscale').value = yscale;
+  }
+
+  document.getElementById('graph-autofit-btn').addEventListener('click', _autoFitGraphScale);
+
   // ── 삼차함수 극값 → 계수 계산 ──
   function _cubicFromExtrema() {
     const x1 = parseFloat(document.getElementById('cubic-max-x').value);
@@ -604,23 +651,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('graph-xmin').value = parseFloat(xMin.toFixed(2));
     document.getElementById('graph-xmax').value = parseFloat(xMax.toFixed(2));
 
-    // y 범위 샘플링 → y 비율 자동 설정
-    const steps = 200;
-    let yMin = Infinity, yMax = -Infinity;
-    for (let i = 0; i <= steps; i++) {
-      const x = xMin + (xMax - xMin) * i / steps;
-      const y = r.a * x ** 3 + r.b * x ** 2 + r.c * x + r.d;
-      if (y < yMin) yMin = y;
-      if (y > yMax) yMax = y;
-    }
-    const yRange = yMax - yMin || 1;
-    const targetPx = 260; // 캔버스 높이의 ~70%에 해당하는 픽셀
-    const yscale = Math.round(Math.max(1, Math.min(500, targetPx / yRange)));
-    document.getElementById('graph-yscale').value = yscale;
-
-    // x 비율도 동일하게
-    const xRange = xMax - xMin || 1;
-    const xscale = Math.round(Math.max(1, Math.min(500, targetPx / xRange)));
+    // x 비율: x범위에 맞게
+    const xscale = Math.round(Math.max(1, Math.min(500, 260 / (xMax - xMin))));
     document.getElementById('graph-scale').value = xscale;
 
     // 변곡점 표시
@@ -629,6 +661,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('cubic-inflection-display').textContent =
       `(${parseFloat(ix.toFixed(3))}, ${parseFloat(iy.toFixed(3))})`;
     document.getElementById('cubic-inflection-row').style.display = '';
+
+    // y 비율은 공용 함수로 처리
+    _autoFitGraphScale();
   });
 
   function _updateGraphPreview() {
