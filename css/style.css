@@ -47,12 +47,13 @@ body {
 #top-bar {
   display: flex;
   align-items: center;
-  gap: 4px;        /* 2px → 4px */
-  padding: 0 12px; /* 0 8px → 0 12px */
+  gap: 4px;
+  padding: 0 10px;
   background: var(--mantle);
   border-bottom: 1px solid var(--surface0);
   flex-shrink: 0;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
 }
 
 #top-bar button, #top-bar .btn {
@@ -63,13 +64,27 @@ body {
 .tbar-group {
   display: flex;
   align-items: center;
-  gap: 5px;             /* 3px → 5px */
-  padding: 0 10px 0 0;  /* 0 6px 0 0 → 0 10px 0 0 */
+  gap: 4px;
+  padding: 0 8px 0 0;
   border-right: 1px solid var(--surface0);
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 .tbar-group:last-child { border-right: none; padding-right: 0; }
-.tbar-group.ml-auto { margin-left: auto; }
+
+/* 스냅 그룹은 절대 숨겨지지 않도록 */
+.tbar-group.ml-auto {
+  margin-left: auto;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+#grid-size-input {
+  width: 44px;
+  font-size: 13px;
+  padding: 4px 5px;
+}
 
 /* ── Tool-Options Bar ── */
 #tool-options-bar {
