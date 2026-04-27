@@ -94,11 +94,6 @@ const Tools = (() => {
   // Label tool state
   let currentLabel = 'A';
 
-  // Line 2-click state
-  let linePhase     = 0;
-  let lineStartPt   = null;
-  let linePreviewObj = null;
-
   // Arc tool state (3-click: center → start-point → end-point)
   let arcPhase      = 0;   // 0: idle, 1: waiting start-point, 2: waiting end-point
   let arcCenter     = null;
@@ -133,7 +128,6 @@ const Tools = (() => {
   }
 
   function setTool(tool) {
-    if (currentTool === 'line') _cancelLine();
     if (currentTool === 'polygon') _cancelPolygon();
     if (currentTool === 'arc') _cancelArc();
     currentTool = tool;
@@ -236,17 +230,6 @@ const Tools = (() => {
       return;
     }
 
-    if (currentTool === 'line') {
-      if (linePhase === 0) {
-        lineStartPt = { x: p.x, y: p.y };
-        linePhase = 1;
-        _updateLinePreview(p);
-      } else {
-        _finishLine(p);
-      }
-      return;
-    }
-
     if (currentTool === 'label') {
       const lbl = currentLabel;
       buildMathText(p, `\\mathrm{${lbl}}`).then(img => {
@@ -311,10 +294,6 @@ const Tools = (() => {
   }
 
   function onMouseMove(e) {
-    if (currentTool === 'line' && linePhase === 1) {
-      _updateLinePreview(snapAngle(lineStartPt, ptSnap(e), e));
-      return;
-    }
     if (currentTool === 'arc' && arcPhase > 0) {
       _updateArcPreview(ptSnap(e));
       return;
@@ -1514,40 +1493,6 @@ const Tools = (() => {
     document.getElementById('angle-modal').classList.add('hidden');
     angleCallback = null;
     pendingAngleCenter = null;
-  }
-
-  // ── Line 2-click tool ──
-  function _updateLinePreview(endPt) {
-    CanvasManager.setHistoryLock(true);
-    if (linePreviewObj) { canvas.remove(linePreviewObj); linePreviewObj = null; }
-    const obj = buildObject(lineStartPt, endPt, null);
-    if (obj) {
-      obj._isTempPreview = true;
-      obj.set({ opacity: 0.5, selectable: false, evented: false });
-      canvas.add(obj);
-      canvas.renderAll();
-      linePreviewObj = obj;
-    }
-    CanvasManager.setHistoryLock(false);
-  }
-
-  function _finishLine(endPt) {
-    CanvasManager.setHistoryLock(true);
-    if (linePreviewObj) { canvas.remove(linePreviewObj); linePreviewObj = null; }
-    CanvasManager.setHistoryLock(false);
-    linePhase = 0;
-    if (dist(lineStartPt, endPt) < 4) { lineStartPt = null; return; }
-    const obj = buildObject(lineStartPt, endPt, null);
-    lineStartPt = null;
-    if (obj) { canvas.add(obj); canvas.setActiveObject(obj); canvas.renderAll(); }
-  }
-
-  function _cancelLine() {
-    CanvasManager.setHistoryLock(true);
-    if (linePreviewObj) { canvas.remove(linePreviewObj); linePreviewObj = null; }
-    CanvasManager.setHistoryLock(false);
-    linePhase = 0; lineStartPt = null;
-    canvas.renderAll();
   }
 
   // ── Polygon tool ──
