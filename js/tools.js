@@ -77,6 +77,11 @@ const Tools = (() => {
   let shapeFillEnabled = false;
   let shapeFillColor   = '#aaaaaa';
 
+  // Stroke visibility (닫힌 도형)
+  let strokeEnabled = true;
+  function _strokeVal() { return strokeEnabled ? color : 'transparent'; }
+  function setStrokeEnabled(v) { strokeEnabled = v; }
+
   // Polygon tool state
   let polygonVertices   = [];
   let polygonPreviewObj = null;
@@ -479,7 +484,7 @@ const Tools = (() => {
     return new fabric.Ellipse({
       left: cx, top: cy,
       rx, ry,
-      fill: _shapeFill(), stroke: color, strokeWidth,
+      fill: _shapeFill(), stroke: _strokeVal(), strokeWidth,
       originX: 'center', originY: 'center',
       lockUniScaling: forceCircle,
     });
@@ -584,7 +589,7 @@ const Tools = (() => {
       left: dx >= 0 ? start.x : start.x - w,
       top:  dy >= 0 ? start.y : start.y - h,
       width: w, height: h,
-      fill: _shapeFill(), stroke: color, strokeWidth,
+      fill: _shapeFill(), stroke: _strokeVal(), strokeWidth,
     });
   }
 
@@ -1415,7 +1420,7 @@ const Tools = (() => {
     polygonVertices = [];
     if (verts.length < 3) { canvas.renderAll(); return; }
     const poly = new fabric.Polygon(verts, {
-      fill: _shapeFill(), stroke: color, strokeWidth,
+      fill: _shapeFill(), stroke: _strokeVal(), strokeWidth,
     });
     canvas.add(poly);
     canvas.setActiveObject(poly);
@@ -1487,7 +1492,7 @@ const Tools = (() => {
 
     const d = _buildArcPathData(endAngle);
     const obj = new fabric.Path(d, {
-      fill: shapeFillEnabled ? _shapeFill() : '', stroke: color, strokeWidth,
+      fill: shapeFillEnabled ? _shapeFill() : '', stroke: _strokeVal(), strokeWidth,
     });
     canvas.add(obj);
     canvas.setActiveObject(obj);
@@ -1513,6 +1518,7 @@ const Tools = (() => {
     setColor, setStrokeWidth, setFillOpacity, setFontSize, setDashPattern,
     setLineStyle, setArrowStyle, setPointStyle,
     setShapeFillEnabled, setShapeFillColor,
+    setStrokeEnabled,
     setCurrentLabel, getCurrentLabel,
     getCurrentTool,
     confirmText, cancelText,

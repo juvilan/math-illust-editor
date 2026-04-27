@@ -106,6 +106,13 @@
       </select>
     </div>
 
+    <!-- 외곽선 없음: 닫힌 도형 -->
+    <div class="topt" data-tools="arc,circle,ellipse,rect,polygon">
+      <label class="modal-check">
+        <input type="checkbox" id="no-stroke"> 외곽선 없음
+      </label>
+    </div>
+
     <!-- 채우기: 닫힌 도형 -->
     <div class="topt" data-tools="arc,circle,ellipse,rect,polygon,bucket">
       <label class="modal-check">
@@ -236,10 +243,15 @@
         <div class="insp-section" id="insp-stroke-section">
           <div class="insp-section-title">외곽선</div>
           <div class="insp-row">
+            <label class="modal-check">
+              <input type="checkbox" id="insp-no-stroke"> 없음
+            </label>
+          </div>
+          <div class="insp-row" id="insp-stroke-color-row">
             <label>색상</label>
             <input type="color" id="insp-stroke-color" value="#000000">
           </div>
-          <div class="insp-row">
+          <div class="insp-row" id="insp-stroke-width-row">
             <label>두께</label>
             <input type="range" id="insp-stroke-width" min="1" max="10" value="2">
             <span class="val-label" id="insp-stroke-width-val">2</span>

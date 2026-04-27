@@ -164,6 +164,18 @@ document.addEventListener('DOMContentLoaded', () => {
     Tools.setCurrentLabel('A');
   });
 
+  // ── No-stroke (닫힌 도형 외곽선 없음) ──
+  document.getElementById('no-stroke').addEventListener('change', (e) => {
+    Tools.setStrokeEnabled(!e.target.checked);
+    const colorRow = document.getElementById('insp-stroke-color-row');
+    const widthRow = document.getElementById('insp-stroke-width-row');
+    eachLeaf((child) => {
+      if (child.type === 'image' || child.type === 'text' || child.type === 'i-text') return;
+      child.set({ stroke: e.target.checked ? 'transparent' : document.getElementById('color-picker').value });
+    });
+    CanvasManager.snapshot();
+  });
+
   // ── Fill (도구 기본값) ──
   document.getElementById('fill-enabled').addEventListener('change', (e) => {
     Tools.setShapeFillEnabled(e.target.checked);
@@ -308,14 +320,20 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       strokeSection.style.display = '';
       const sc = obj.stroke || '#000000';
-      const scHex = _toHex(sc);
+      const noStroke = !sc || sc === 'transparent';
+      document.getElementById('insp-no-stroke').checked = noStroke;
+      document.getElementById('insp-stroke-color-row').style.display = noStroke ? 'none' : '';
+      document.getElementById('insp-stroke-width-row').style.display = noStroke ? 'none' : '';
+      const scHex = noStroke ? '#000000' : _toHex(sc);
       document.getElementById('insp-stroke-color').value = scHex;
       document.getElementById('insp-stroke-width').value = obj.strokeWidth || 1;
       document.getElementById('insp-stroke-width-val').textContent = obj.strokeWidth || 1;
       // 툴바 동기화 (Issue #2/#3)
-      document.getElementById('color-picker').value = scHex;
-      document.getElementById('stroke-width').value = obj.strokeWidth || 1;
-      document.getElementById('stroke-width-val').textContent = obj.strokeWidth || 1;
+      if (!noStroke) {
+        document.getElementById('color-picker').value = scHex;
+        document.getElementById('stroke-width').value = obj.strokeWidth || 1;
+        document.getElementById('stroke-width-val').textContent = obj.strokeWidth || 1;
+      }
     }
 
     // 잠금 상태 (Issue #4)
@@ -376,6 +394,19 @@ document.addEventListener('DOMContentLoaded', () => {
   canvas.on('object:modified', () => {
     const obj = canvas.getActiveObject();
     if (obj) _syncInspector(obj);
+  });
+
+  // Inspector 외곽선 없음
+  document.getElementById('insp-no-stroke').addEventListener('change', (e) => {
+    const hide = e.target.checked;
+    document.getElementById('insp-stroke-color-row').style.display = hide ? 'none' : '';
+    document.getElementById('insp-stroke-width-row').style.display = hide ? 'none' : '';
+    const strokeVal = hide ? 'transparent' : document.getElementById('insp-stroke-color').value;
+    eachLeaf((child) => {
+      if (child.type === 'image' || child.type === 'text' || child.type === 'i-text') return;
+      child.set({ stroke: strokeVal });
+    });
+    CanvasManager.snapshot();
   });
 
   // Inspector 색상 변경
