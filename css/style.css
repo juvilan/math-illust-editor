@@ -49,10 +49,11 @@ body {
   align-items: center;
   gap: 4px;
   padding: 0 10px;
+  padding-right: 200px; /* 스냅 그룹 공간 확보 */
   background: var(--mantle);
   border-bottom: 1px solid var(--surface0);
   flex-shrink: 0;
-  overflow: visible;
+  overflow: hidden;
   position: relative;
 }
 
@@ -67,17 +68,20 @@ body {
   gap: 4px;
   padding: 0 8px 0 0;
   border-right: 1px solid var(--surface0);
-  flex-shrink: 1;
-  min-width: 0;
-  overflow: hidden;
+  flex-shrink: 0;
 }
 .tbar-group:last-child { border-right: none; padding-right: 0; }
 
-/* 스냅 그룹은 절대 숨겨지지 않도록 */
+/* 스냅 그룹: 항상 오른쪽 고정 */
 .tbar-group.ml-auto {
-  margin-left: auto;
-  flex-shrink: 0;
-  overflow: visible;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 0;
+  border-right: none;
+  background: var(--mantle);
+  gap: 4px;
 }
 
 #grid-size-input {
