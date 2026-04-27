@@ -116,6 +116,20 @@ const Tools = (() => {
     canvas.on('mouse:move', onMouseMove);
     canvas.on('mouse:up', onMouseUp);
     canvas.on('mouse:dblclick', onDblClick);
+
+    // 축 레이블 원형 드래그 제한
+    canvas.on('object:moving', (e) => {
+      const obj = e.target;
+      if (obj._type !== 'axis-label' || !obj._constraintCenter) return;
+      const { x: cx, y: cy } = obj._constraintCenter;
+      const r  = obj._constraintRadius || 50;
+      const dx = obj.left - cx;
+      const dy = obj.top  - cy;
+      const d  = Math.sqrt(dx * dx + dy * dy);
+      if (d > r) {
+        obj.set({ left: cx + (dx / d) * r, top: cy + (dy / d) * r });
+      }
+    });
   }
 
   function setTool(tool) {
@@ -727,15 +741,34 @@ const Tools = (() => {
         makeTick({ x: origin.x - n*sp*yDir.x, y: origin.y - n*sp*yDir.y }, xDir, String(-n), false);
     }
 
-    const group = new fabric.Group([axesPath, oLbl, xLbl, yLbl, ...tickObjs], { lockUniScaling: true });
-    group._type = 'axis';
+    const group = new fabric.Group([axesPath, ...tickObjs], { lockUniScaling: true });
+    group._type   = 'axis';
+    group._axisId = `ax-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     group.on('rotating', function () {
       this._objects.forEach(o => {
         if (o._type === 'math-label' || o.type === 'text') o.set({ angle: -this.angle });
       });
       this.set({ dirty: true });
     });
-    return group;
+
+    // O·x·y 레이블을 그룹 밖 독립 객체로 설정 (원위치 기준 반경 내 드래그 가능)
+    const constraintRadius = labelSize * 3;
+    const labelDefs = [
+      [oLbl, oPos,    'O'],
+      [xLbl, xLblPos, 'x'],
+      [yLbl, yLblPos, 'y'],
+    ];
+    const labels = labelDefs.map(([lbl, pos, role]) => {
+      lbl.set({
+        selectable: true, hasControls: false,
+        _type: 'axis-label', _axisId: group._axisId, _labelRole: role,
+        _constraintCenter: { x: pos.x, y: pos.y },
+        _constraintRadius: constraintRadius,
+      });
+      return lbl;
+    });
+
+    return { group, labels };
   }
 
   function showAxisCreateModal(origin) {
@@ -751,7 +784,7 @@ const Tools = (() => {
     setTimeout(() => document.getElementById('axis-x-len').focus(), 50);
     axisRatioCallback = async (xLen, yLen, xNegLen, yNegLen, labelSize, tickOpts) => {
       const xDir = { x: 1, y: 0 };
-      const group = await buildAxisFromParams(origin, xDir, xLen, yLen, xNegLen, yNegLen, labelSize, tickOpts);
+      const { group, labels } = await buildAxisFromParams(origin, xDir, xLen, yLen, xNegLen, yNegLen, labelSize, tickOpts);
       const gc = group.getCenterPoint();
       group._axisData = {
         relOriginX: origin.x - gc.x,
@@ -760,6 +793,7 @@ const Tools = (() => {
         xLen, yLen, xNegLen, yNegLen, labelSize, tickOpts,
       };
       canvas.add(group);
+      labels.forEach(lbl => canvas.add(lbl));
       canvas.renderAll();
       switchToSelect();
     };
@@ -797,7 +831,12 @@ const Tools = (() => {
       x: data.xDirX * cos - data.xDirY * sin,
       y: data.xDirX * sin + data.xDirY * cos,
     };
-    const newGroup = await buildAxisFromParams(
+    // 기존 독립 레이블 제거
+    canvas.getObjects()
+      .filter(o => o._type === 'axis-label' && o._axisId === group._axisId)
+      .forEach(o => canvas.remove(o));
+
+    const { group: newGroup, labels } = await buildAxisFromParams(
       canvasOrigin, visXDir, newXLen, newYLen, newXNegLen, newYNegLen, newLabelSize, tickOpts
     );
     const gc = newGroup.getCenterPoint();
@@ -815,6 +854,7 @@ const Tools = (() => {
     };
     canvas.remove(group);
     canvas.add(newGroup);
+    labels.forEach(lbl => canvas.add(lbl));
     canvas.setActiveObject(newGroup);
     canvas.renderAll();
   }

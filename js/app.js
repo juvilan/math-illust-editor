@@ -225,12 +225,17 @@ document.addEventListener('DOMContentLoaded', () => {
   function deleteActive() {
     const obj = canvas.getActiveObject();
     if (!obj) return;
-    if (obj.type === 'activeSelection') {
-      canvas.getActiveObjects().forEach(o => canvas.remove(o));
-      canvas.discardActiveObject();
-    } else {
-      canvas.remove(obj);
-    }
+    const targets = obj.type === 'activeSelection' ? canvas.getActiveObjects() : [obj];
+    targets.forEach(o => {
+      canvas.remove(o);
+      // 좌표축 삭제 시 연동된 독립 레이블도 함께 제거
+      if (o._type === 'axis' && o._axisId) {
+        canvas.getObjects()
+          .filter(lbl => lbl._type === 'axis-label' && lbl._axisId === o._axisId)
+          .forEach(lbl => canvas.remove(lbl));
+      }
+    });
+    if (obj.type === 'activeSelection') canvas.discardActiveObject();
     canvas.renderAll();
   }
 
@@ -296,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const _TYPE_META = {
     'math-text': '수식', 'math-label': '레이블', 'bg-image': '배경 이미지',
     'axis': '좌표축', 'graph': '그래프', 'angle': '각도', 'arc-dim': '호치수',
-    'projection': '수선의 발',
+    'projection': '수선의 발', 'axis-label': '축 레이블',
   };
 
   function _syncInspector(obj) {
