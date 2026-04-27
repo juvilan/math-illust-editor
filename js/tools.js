@@ -620,7 +620,11 @@ const Tools = (() => {
     });
   }
 
-  // ── Cover Rect (가리기: 흰색 불투명 직사각형) ──
+  // ── Cover Rect (가리기) ──
+  let coverFillColor = '#ffffff';
+  function setCoverFillColor(c) { coverFillColor = c; }
+  function getCoverFillColor()  { return coverFillColor; }
+
   function buildCoverRect(start, end, e) {
     const dx = end.x - start.x;
     const dy = end.y - start.y;
@@ -633,7 +637,7 @@ const Tools = (() => {
       left: dx >= 0 ? start.x : start.x - w,
       top:  dy >= 0 ? start.y : start.y - h,
       width: w, height: h,
-      fill: '#ffffff', stroke: null, strokeWidth: 0,
+      fill: coverFillColor, stroke: null, strokeWidth: 0,
       _type: 'cover-rect',
     });
   }
@@ -1590,6 +1594,7 @@ const Tools = (() => {
     setLineStyle, setArrowStyle, setPointStyle,
     setShapeFillEnabled, setShapeFillColor,
     setStrokeEnabled,
+    setCoverFillColor, getCoverFillColor,
     setCurrentLabel, getCurrentLabel,
     getCurrentTool,
     confirmText, cancelText,

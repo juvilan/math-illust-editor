@@ -148,7 +148,12 @@
     <div class="topt topt-hint" data-tools="polygon">클릭으로 꼭짓점 추가 · 첫 꼭짓점 재클릭 또는 Enter로 완성 · Esc 취소</div>
     <div class="topt topt-hint" data-tools="arc">① 중심 → ② 시작점 → ③ 끝점 클릭 · Esc 취소</div>
     <div class="topt topt-hint" data-tools="projection">시작점 → 끝점 드래그로 수선의 발을 그립니다</div>
-    <div class="topt topt-hint" data-tools="cover">드래그로 흰색 사각형을 그려 그림의 일부를 가립니다 · 선택 후 크기·위치 조정 가능</div>
+    <div class="topt" data-tools="cover">
+      <label>색상</label>
+      <input type="color" id="cover-fill-color" value="#ffffff" title="가리기 색상">
+      <button id="cover-eyedropper-btn" title="스포이드: 캔버스에서 색 추출" style="padding:7px 10px">🔍</button>
+    </div>
+    <div class="topt topt-hint" data-tools="cover">드래그로 사각형을 그려 가립니다 · 🔍로 배경색 추출 가능</div>
   </div>
 
   <!-- ══ Main ══ -->

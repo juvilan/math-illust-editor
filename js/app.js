@@ -191,6 +191,34 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.renderAll();
   });
 
+  // ── Cover 가리기 색상 + 스포이드 ──
+  document.getElementById('cover-fill-color').addEventListener('input', (e) => {
+    Tools.setCoverFillColor(e.target.value);
+  });
+
+  let _eyedropperActive = false;
+
+  function _handleEyedropperClick(e) {
+    _eyedropperActive = false;
+    e.stopImmediatePropagation();
+    document.getElementById('cover-eyedropper-btn').style.outline = '';
+
+    const canvasEl = canvas.lowerCanvasEl;
+    const rect = canvasEl.getBoundingClientRect();
+    const x = Math.round(e.clientX - rect.left);
+    const y = Math.round(e.clientY - rect.top);
+    const px = canvasEl.getContext('2d').getImageData(x, y, 1, 1).data;
+    const hex = '#' + [px[0], px[1], px[2]].map(v => v.toString(16).padStart(2, '0')).join('');
+    document.getElementById('cover-fill-color').value = hex;
+    Tools.setCoverFillColor(hex);
+  }
+
+  document.getElementById('cover-eyedropper-btn').addEventListener('click', () => {
+    _eyedropperActive = true;
+    document.getElementById('cover-eyedropper-btn').style.outline = '2px solid var(--blue)';
+    canvas.lowerCanvasEl.addEventListener('mousedown', _handleEyedropperClick, { once: true, capture: true });
+  });
+
   // ── Actions ──
   document.getElementById('btn-export').addEventListener('click', () => CanvasManager.exportPNG());
   document.getElementById('btn-export-svg').addEventListener('click', () => CanvasManager.exportSVG());
@@ -842,6 +870,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (e.key === 'Escape') {
+      if (_eyedropperActive) {
+        _eyedropperActive = false;
+        canvas.lowerCanvasEl.removeEventListener('mousedown', _handleEyedropperClick, { capture: true });
+        document.getElementById('cover-eyedropper-btn').style.outline = '';
+      }
       Tools.cancelText();
       Tools.cancelAngle();
       Tools.cancelAxisRatio();
