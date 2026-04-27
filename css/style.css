@@ -55,6 +55,11 @@ body {
   overflow: hidden;
 }
 
+#top-bar button, #top-bar .btn {
+  padding: 5px 8px;
+  font-size: 13px;
+}
+
 .tbar-group {
   display: flex;
   align-items: center;

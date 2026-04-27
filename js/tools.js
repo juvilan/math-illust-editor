@@ -270,7 +270,7 @@ const Tools = (() => {
     }
 
     if (currentTool === 'axis') {
-      showAxisCreateModal(p);
+      createDefaultAxis(p);
       return;
     }
 
@@ -398,9 +398,8 @@ const Tools = (() => {
       return;
     }
 
-    // 좌표축 더블클릭 → 축 길이 조정
+    // 좌표축 더블클릭 → 인스펙터에서 편집
     if (e.target && e.target._type === 'axis') {
-      showAxisRatioModal(e.target);
       return;
     }
 
@@ -831,6 +830,26 @@ const Tools = (() => {
     };
   }
 
+  async function createDefaultAxis(origin) {
+    const xDir = { x: 1, y: 0 };
+    const defaults = { xLen: 200, yLen: 200, xNegLen: 30, yNegLen: 30, labelSize: 10,
+                       tickOpts: { spacing: 0, showTicks: true, showNumbers: true } };
+    const { group, labels } = await buildAxisFromParams(
+      origin, xDir, defaults.xLen, defaults.yLen, defaults.xNegLen, defaults.yNegLen,
+      defaults.labelSize, defaults.tickOpts
+    );
+    const gc = group.getCenterPoint();
+    group._axisData = {
+      relOriginX: origin.x - gc.x, relOriginY: origin.y - gc.y,
+      xDirX: 1, xDirY: 0, ...defaults,
+    };
+    canvas.add(group);
+    labels.forEach(lbl => canvas.add(lbl));
+    canvas.setActiveObject(group);
+    canvas.renderAll();
+    switchToSelect();
+  }
+
   function showAxisRatioModal(group) {
     const data = group._axisData;
     if (!data) return;
@@ -891,26 +910,8 @@ const Tools = (() => {
     canvas.renderAll();
   }
 
-  async function confirmAxisRatio() {
-    const xLen      = parseFloat(document.getElementById('axis-x-len').value);
-    const yLen      = parseFloat(document.getElementById('axis-y-len').value);
-    const xNegLen   = parseFloat(document.getElementById('axis-x-neg-len').value)  || 0;
-    const yNegLen   = parseFloat(document.getElementById('axis-y-neg-len').value)  || 0;
-    const labelSize = parseFloat(document.getElementById('axis-label-size').value) || 18;
-    const spacing   = parseFloat(document.getElementById('axis-tick-spacing').value) || 0;
-    const showTicks   = document.getElementById('axis-show-ticks').checked;
-    const showNumbers = document.getElementById('axis-show-numbers').checked;
-    document.getElementById('axis-ratio-modal').classList.add('hidden');
-    if (axisRatioCallback && xLen > 0 && yLen > 0) {
-      await axisRatioCallback(xLen, yLen, xNegLen, yNegLen, labelSize, { spacing, showTicks, showNumbers });
-      axisRatioCallback = null;
-    }
-  }
-
-  function cancelAxisRatio() {
-    document.getElementById('axis-ratio-modal').classList.add('hidden');
-    axisRatioCallback = null;
-  }
+  function confirmAxisRatio() { axisRatioCallback = null; }
+  function cancelAxisRatio()  { axisRatioCallback = null; }
 
   // ── Graph tool ──
   function showGraphModal(clickPt) {
@@ -1115,9 +1116,11 @@ const Tools = (() => {
     const s = Math.max(8, strokeWidth * 3);
     const sx = (end.x - start.x) >= 0 ? 1 : -1;
     const sy = (end.y - start.y) >= 0 ? 1 : -1;
+    // 직각 표시: 직사각형의 두 발점에 각각 (start/end가 아닌 나머지 꼭짓점)
     const d = `M ${start.x} ${start.y} L ${start.x} ${end.y} ` +
               `M ${start.x} ${start.y} L ${end.x} ${start.y} ` +
-              `M ${start.x + sx*s} ${start.y} L ${start.x + sx*s} ${start.y + sy*s} L ${start.x} ${start.y + sy*s}`;
+              `M ${start.x+sx*s} ${end.y} L ${start.x+sx*s} ${end.y-sy*s} L ${start.x} ${end.y-sy*s} ` +
+              `M ${end.x-sx*s} ${start.y} L ${end.x-sx*s} ${start.y+sy*s} L ${end.x} ${start.y+sy*s}`;
     return new fabric.Path(d, { stroke: color, strokeWidth, fill: '', strokeDashArray: _projDash() });
   }
 
@@ -1133,16 +1136,26 @@ const Tools = (() => {
     const hLine = new fabric.Line([start.x, start.y, end.x, start.y], {
       stroke: color, strokeWidth, fill: '', strokeDashArray: dash, selectable: false,
     });
-    // 직각 표시: Line 두 개 (fabric.Path는 Group 내 좌표가 어긋남)
-    const markV = new fabric.Line(
-      [start.x + sx*s, start.y, start.x + sx*s, start.y + sy*s],
-      { stroke: color, strokeWidth, fill: '', strokeDashArray: null, selectable: false }
+    // 직각 표시: 직사각형의 두 발점에 각각
+    // foot1 = (start.x, end.y): vLine의 끝
+    const mark1V = new fabric.Line(
+      [start.x+sx*s, end.y,      start.x+sx*s, end.y-sy*s],
+      { stroke: color, strokeWidth, fill: '', strokeDashArray: null, _isRightAngleMark: true, selectable: false }
     );
-    const markH = new fabric.Line(
-      [start.x + sx*s, start.y + sy*s, start.x, start.y + sy*s],
-      { stroke: color, strokeWidth, fill: '', strokeDashArray: null, selectable: false }
+    const mark1H = new fabric.Line(
+      [start.x+sx*s, end.y-sy*s, start.x,      end.y-sy*s],
+      { stroke: color, strokeWidth, fill: '', strokeDashArray: null, _isRightAngleMark: true, selectable: false }
     );
-    const group = new fabric.Group([vLine, hLine, markV, markH], { lockUniScaling: true });
+    // foot2 = (end.x, start.y): hLine의 끝
+    const mark2V = new fabric.Line(
+      [end.x-sx*s, start.y,      end.x-sx*s, start.y+sy*s],
+      { stroke: color, strokeWidth, fill: '', strokeDashArray: null, _isRightAngleMark: true, selectable: false }
+    );
+    const mark2H = new fabric.Line(
+      [end.x-sx*s, start.y+sy*s, end.x,      start.y+sy*s],
+      { stroke: color, strokeWidth, fill: '', strokeDashArray: null, _isRightAngleMark: true, selectable: false }
+    );
+    const group = new fabric.Group([vLine, hLine, mark1V, mark1H, mark2V, mark2H], { lockUniScaling: true });
     group._type = 'projection';
     return group;
   }
@@ -1364,6 +1377,7 @@ const Tools = (() => {
             img.set({ left: p.x, top: p.y, originX: 'center', originY: 'center', lockUniScaling: true });
             img._type = 'math-text';
             img._latex = latex;
+            img._fontSize = fontSize;
             resolve(img);
           } else {
             resolve(buildText(p, latex));
@@ -1373,6 +1387,35 @@ const Tools = (() => {
     } catch (_) {
       return buildText(p, latex);
     }
+  }
+
+  // 기존 math-text/text 객체의 글자 크기 변경 (inspector용)
+  // 반환값: 새 객체(math-text 재빌드) 또는 기존 객체(text/i-text), 실패 시 null
+  async function rebuildMathTextSize(obj, newSize) {
+    const sz = parseInt(newSize);
+    if (!sz || sz < 1) return null;
+    if (obj.type === 'i-text' || obj.type === 'text') {
+      obj.set({ fontSize: sz });
+      return obj;
+    }
+    if (obj._type !== 'math-text' || !obj._latex) return null;
+    // activeSelection 내 객체는 좌표가 그룹 상대좌표 → 절대좌표 계산
+    let absX = obj.left, absY = obj.top;
+    if (obj.group) {
+      const pt = fabric.util.transformPoint(
+        { x: obj.left, y: obj.top },
+        obj.group.calcTransformMatrix()
+      );
+      absX = pt.x; absY = pt.y;
+    }
+    const prevFontSize = fontSize;
+    fontSize = sz;
+    const rebuilt = await buildMathText({ x: absX, y: absY }, obj._latex);
+    fontSize = prevFontSize;
+    rebuilt.set({ angle: obj.angle, scaleX: 1, scaleY: 1 });
+    canvas.remove(obj);
+    canvas.add(rebuilt);
+    return rebuilt;
   }
 
   async function confirmText() {
@@ -1614,6 +1657,7 @@ const Tools = (() => {
     getCurrentTool,
     confirmText, cancelText,
     confirmAngle, cancelAngle,
+    rebuildAxis, rebuildMathTextSize,
     confirmAxisRatio, cancelAxisRatio,
     confirmGraph, cancelGraph, GRAPH_FN_DEFS,
     confirmPolygon, cancelPolygon,

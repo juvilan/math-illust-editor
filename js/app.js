@@ -125,31 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
     CanvasManager.snapshot();
   });
 
-  // ── Dash pattern ──
-  document.getElementById('dash-pattern').addEventListener('change', (e) => {
-    Tools.setDashPattern(e.target.value);
-    const pattern = e.target.value.split(',').map(Number);
-    eachLeaf((child) => {
-      if (child.type === 'image') return;
-      if (child.strokeDashArray) child.set({ strokeDashArray: pattern });
-    });
-  });
-
-  // ── Opacity (채우기 투명도) ──
-  document.getElementById('opacity-input').addEventListener('input', (e) => {
-    const val = parseInt(e.target.value);
-    document.getElementById('opacity-val').textContent = val + '%';
-    Tools.setFillOpacity(val);
-    const rgba = _hexToRgba(document.getElementById('fill-color').value, val / 100);
-    eachLeaf((child) => {
-      if (child.type === 'image' || child.type === 'text' || child.type === 'i-text') return;
-      if (child.fill && child.fill !== '') child.set({ fill: rgba });
-    });
-    canvas.renderAll();
-  });
-
-  // ── 선·화살표·점 스타일 ──
-  document.getElementById('line-style').addEventListener('change', (e) => Tools.setLineStyle(e.target.value));
+  // ── 화살표·점 스타일 ──
   document.getElementById('arrow-style').addEventListener('change', (e) => Tools.setArrowStyle(e.target.value));
   document.getElementById('point-style').addEventListener('change', (e) => Tools.setPointStyle(e.target.value));
 
@@ -162,33 +138,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('btn-label-reset').addEventListener('click', () => {
     Tools.setCurrentLabel('A');
-  });
-
-  // ── No-stroke (닫힌 도형 외곽선 없음) ──
-  document.getElementById('no-stroke').addEventListener('change', (e) => {
-    Tools.setStrokeEnabled(!e.target.checked);
-    const colorRow = document.getElementById('insp-stroke-color-row');
-    const widthRow = document.getElementById('insp-stroke-width-row');
-    eachLeaf((child) => {
-      if (child.type === 'image' || child.type === 'text' || child.type === 'i-text') return;
-      child.set({ stroke: e.target.checked ? 'transparent' : document.getElementById('color-picker').value });
-    });
-    CanvasManager.snapshot();
-  });
-
-  // ── Fill (도구 기본값) ──
-  document.getElementById('fill-enabled').addEventListener('change', (e) => {
-    Tools.setShapeFillEnabled(e.target.checked);
-  });
-  document.getElementById('fill-color').addEventListener('input', (e) => {
-    Tools.setShapeFillColor(e.target.value);
-    const opacity = parseInt(document.getElementById('opacity-input').value) / 100;
-    const rgba = _hexToRgba(e.target.value, opacity);
-    eachLeaf((child) => {
-      if (child.type === 'image' || child.type === 'text' || child.type === 'i-text') return;
-      if (child.fill && child.fill !== '') child.set({ fill: rgba });
-    });
-    canvas.renderAll();
   });
 
   // ── Cover 가리기 색상 + 스포이드 ──
@@ -361,6 +310,30 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('insp-stroke-color').value = scHex;
       document.getElementById('insp-stroke-width').value = obj.strokeWidth || 1;
       document.getElementById('insp-stroke-width-val').textContent = obj.strokeWidth || 1;
+      // 선 스타일 / 점선 패턴
+      const isTextLike = obj.type === 'text' || obj.type === 'i-text'
+        || obj._type === 'math-text' || obj._type === 'math-label' || obj._type === 'axis-label';
+      const lineStyleRow = document.getElementById('insp-line-style-row');
+      const dashPatternRow = document.getElementById('insp-dash-pattern-row');
+      if (isTextLike || obj._type === 'cover-rect' || obj._type === 'bg-image' || noStroke) {
+        lineStyleRow.style.display = 'none';
+        dashPatternRow.style.display = 'none';
+      } else {
+        lineStyleRow.style.display = '';
+        let dashArr = obj.strokeDashArray;
+        if (!dashArr && obj.type === 'group' && obj._objects?.length) {
+          dashArr = obj._objects[0].strokeDashArray;
+        }
+        const isDashed = !!(dashArr && dashArr.length);
+        document.getElementById('insp-line-style').value = isDashed ? 'dashed' : 'solid';
+        if (isDashed) {
+          const patStr = dashArr.join(',');
+          const sel = document.getElementById('insp-dash-pattern');
+          const matchOpt = [...sel.options].find(o => o.value === patStr);
+          if (matchOpt) sel.value = patStr;
+        }
+        dashPatternRow.style.display = isDashed ? '' : 'none';
+      }
       // 툴바 동기화 (Issue #2/#3)
       if (!noStroke) {
         document.getElementById('color-picker').value = scHex;
@@ -375,6 +348,40 @@ document.addEventListener('DOMContentLoaded', () => {
     inspLock.textContent = locked ? '🔓 해제' : '🔒 잠금';
     inspLock.style.borderColor = locked ? 'var(--yellow)' : '';
     inspLock.style.color = locked ? 'var(--yellow)' : '';
+
+    // 글자 크기 섹션 (레이블/텍스트)
+    const fontSection = document.getElementById('insp-font-section');
+    const _isTextType = (o) => o._type === 'math-text' || o.type === 'i-text' || o.type === 'text';
+    const textObjs = obj.type === 'activeSelection'
+      ? (obj._objects || []).filter(_isTextType)
+      : (_isTextType(obj) ? [obj] : []);
+    if (textObjs.length > 0) {
+      fontSection.classList.remove('hidden');
+      const sz = textObjs[0]._fontSize || textObjs[0].fontSize || 18;
+      document.getElementById('insp-font-size').value = sz;
+      document.getElementById('insp-font-size-val').textContent = sz;
+    } else {
+      fontSection.classList.add('hidden');
+    }
+
+    // 좌표축 설정 섹션
+    const axisSection = document.getElementById('insp-axis-section');
+    if (obj._type === 'axis' && obj._axisData) {
+      axisSection.classList.remove('hidden');
+      const d = obj._axisData;
+      const sc = obj.scaleX || 1;
+      document.getElementById('insp-axis-x-len').value   = Math.round(d.xLen    * sc);
+      document.getElementById('insp-axis-y-len').value   = Math.round(d.yLen    * sc);
+      document.getElementById('insp-axis-x-neg').value   = Math.round((d.xNegLen || 0) * sc);
+      document.getElementById('insp-axis-y-neg').value   = Math.round((d.yNegLen || 0) * sc);
+      document.getElementById('insp-axis-label-size').value  = Math.round(d.labelSize || 18);
+      const tick = d.tickOpts || {};
+      document.getElementById('insp-axis-tick-spacing').value = Math.round((tick.spacing || 0) * sc);
+      document.getElementById('insp-axis-show-ticks').checked   = tick.showTicks   !== false;
+      document.getElementById('insp-axis-show-numbers').checked = tick.showNumbers !== false;
+    } else {
+      axisSection.classList.add('hidden');
+    }
 
     // 채우기 (닫힌 도형)
     const fillSection = document.getElementById('insp-fill-section');
@@ -432,8 +439,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Inspector 외곽선 없음
   document.getElementById('insp-no-stroke').addEventListener('change', (e) => {
     const hide = e.target.checked;
+    Tools.setStrokeEnabled(!hide);
     document.getElementById('insp-stroke-color-row').style.display = hide ? 'none' : '';
     document.getElementById('insp-stroke-width-row').style.display = hide ? 'none' : '';
+    document.getElementById('insp-line-style-row').style.display = hide ? 'none' : '';
+    document.getElementById('insp-dash-pattern-row').style.display = 'none';
     const strokeVal = hide ? 'transparent' : document.getElementById('insp-stroke-color').value;
     eachLeaf((child) => {
       if (child.type === 'image' || child.type === 'text' || child.type === 'i-text') return;
@@ -469,6 +479,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('insp-fill-enabled').addEventListener('change', (e) => {
     const active = canvas.getActiveObject();
     if (!active) return;
+    Tools.setShapeFillEnabled(e.target.checked);
     if (e.target.checked) {
       const fc  = document.getElementById('insp-fill-color').value;
       const pct = parseInt(document.getElementById('insp-opacity').value) / 100;
@@ -485,6 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('insp-fill-color').addEventListener('input', (e) => {
+    Tools.setShapeFillColor(e.target.value);
     const pct = parseInt(document.getElementById('insp-opacity').value) / 100;
     const rgba = _hexToRgba(e.target.value, pct);
     eachLeaf((child) => {
@@ -497,6 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('insp-opacity').addEventListener('input', (e) => {
     const val = parseInt(e.target.value);
     document.getElementById('insp-opacity-val').textContent = val + '%';
+    Tools.setFillOpacity(val);
     const fc = document.getElementById('insp-fill-color').value;
     const rgba = _hexToRgba(fc, val / 100);
     eachLeaf((child) => {
@@ -504,6 +517,32 @@ document.addEventListener('DOMContentLoaded', () => {
       if (child.fill && child.fill !== '') child.set({ fill: rgba });
     });
     canvas.renderAll();
+  });
+
+  // Inspector 선 스타일 / 점선 패턴
+  document.getElementById('insp-line-style').addEventListener('change', (e) => {
+    const val = e.target.value;
+    Tools.setLineStyle(val);
+    const isDashed = val === 'dashed';
+    document.getElementById('insp-dash-pattern-row').style.display = isDashed ? '' : 'none';
+    const pattern = isDashed
+      ? document.getElementById('insp-dash-pattern').value.split(',').map(Number)
+      : null;
+    eachLeaf((child) => {
+      if (child.type === 'image' || child._isRightAngleMark) return;
+      child.set({ strokeDashArray: pattern });
+    });
+    CanvasManager.snapshot();
+  });
+
+  document.getElementById('insp-dash-pattern').addEventListener('change', (e) => {
+    Tools.setDashPattern(e.target.value);
+    const pattern = e.target.value.split(',').map(Number);
+    eachLeaf((child) => {
+      if (child.type === 'image' || child._isRightAngleMark) return;
+      if (child.strokeDashArray) child.set({ strokeDashArray: pattern });
+    });
+    CanvasManager.snapshot();
   });
 
   // Inspector 레이어 버튼
@@ -742,14 +781,60 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') Tools.cancelGraph();
   });
 
-  // ── Axis ratio modal ──
-  document.getElementById('axis-ratio-ok').addEventListener('click', () => Tools.confirmAxisRatio());
-  document.getElementById('axis-ratio-cancel').addEventListener('click', () => Tools.cancelAxisRatio());
-  ['axis-x-len', 'axis-y-len'].forEach(id => {
-    document.getElementById(id).addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') Tools.confirmAxisRatio();
-      if (e.key === 'Escape') Tools.cancelAxisRatio();
-    });
+  // ── Inspector 글자 크기 ──
+  document.getElementById('insp-font-size').addEventListener('input', async (e) => {
+    const sz = parseInt(e.target.value);
+    document.getElementById('insp-font-size-val').textContent = sz;
+    Tools.setFontSize(sz);  // 다음 레이블에도 적용
+    const obj = canvas.getActiveObject();
+    if (!obj) return;
+
+    const _isText = (o) => o._type === 'math-text' || o.type === 'i-text' || o.type === 'text';
+
+    if (obj.type === 'activeSelection') {
+      const targets = (obj._objects || []).filter(_isText);
+      if (targets.length === 0) return;
+      canvas.discardActiveObject();
+      const newObjs = [];
+      for (const t of targets) {
+        const result = await Tools.rebuildMathTextSize(t, sz);
+        if (result) newObjs.push(result);
+      }
+      canvas.renderAll();
+      CanvasManager.snapshot();
+      if (newObjs.length === 1) {
+        canvas.setActiveObject(newObjs[0]);
+      } else if (newObjs.length > 1) {
+        const sel = new fabric.ActiveSelection(newObjs, { canvas });
+        canvas.setActiveObject(sel);
+      }
+      canvas.renderAll();
+    } else {
+      const result = await Tools.rebuildMathTextSize(obj, sz);
+      if (result) {
+        canvas.setActiveObject(result);
+        canvas.renderAll();
+        CanvasManager.snapshot();
+        _syncInspector(result);
+      }
+    }
+  });
+
+  // ── Inspector 좌표축 적용 ──
+  document.getElementById('insp-axis-apply').addEventListener('click', async () => {
+    const obj = canvas.getActiveObject();
+    if (!obj || obj._type !== 'axis') return;
+    const xLen      = parseFloat(document.getElementById('insp-axis-x-len').value);
+    const yLen      = parseFloat(document.getElementById('insp-axis-y-len').value);
+    const xNegLen   = parseFloat(document.getElementById('insp-axis-x-neg').value) || 0;
+    const yNegLen   = parseFloat(document.getElementById('insp-axis-y-neg').value) || 0;
+    const labelSize = parseFloat(document.getElementById('insp-axis-label-size').value) || 18;
+    const spacing   = parseFloat(document.getElementById('insp-axis-tick-spacing').value) || 0;
+    const showTicks   = document.getElementById('insp-axis-show-ticks').checked;
+    const showNumbers = document.getElementById('insp-axis-show-numbers').checked;
+    if (xLen > 0 && yLen > 0) {
+      await Tools.rebuildAxis(obj, xLen, yLen, xNegLen, yNegLen, labelSize, { spacing, showTicks, showNumbers });
+    }
   });
 
   // ── Text modal ──
