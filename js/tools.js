@@ -1109,17 +1109,34 @@ const Tools = (() => {
   }
 
   // ── Projection tool ──
+  function _projDash() { return lineStyle === 'dashed' ? dashPattern : null; }
+
   function buildProjectionPreview(start, end) {
-    const d = `M ${start.x} ${start.y} L ${start.x} ${end.y} M ${start.x} ${start.y} L ${end.x} ${start.y}`;
-    return new fabric.Path(d, { stroke: color, strokeWidth, fill: '', strokeDashArray: dashPattern });
+    const s = Math.max(8, strokeWidth * 3);
+    const sx = (end.x - start.x) >= 0 ? 1 : -1;
+    const sy = (end.y - start.y) >= 0 ? 1 : -1;
+    const d = `M ${start.x} ${start.y} L ${start.x} ${end.y} ` +
+              `M ${start.x} ${start.y} L ${end.x} ${start.y} ` +
+              `M ${start.x + sx*s} ${start.y} L ${start.x + sx*s} ${start.y + sy*s} L ${start.x} ${start.y + sy*s}`;
+    return new fabric.Path(d, { stroke: color, strokeWidth, fill: '', strokeDashArray: _projDash() });
   }
 
   function buildProjection(start, end) {
+    const dash = _projDash();
+    const s = Math.max(8, strokeWidth * 3);
+    const sx = (end.x - start.x) >= 0 ? 1 : -1;
+    const sy = (end.y - start.y) >= 0 ? 1 : -1;
+
     const vLine = new fabric.Line([start.x, start.y, start.x, end.y], {
-      stroke: color, strokeWidth, fill: '', strokeDashArray: dashPattern, selectable: false,
+      stroke: color, strokeWidth, fill: '', strokeDashArray: dash, selectable: false,
     });
     const hLine = new fabric.Line([start.x, start.y, end.x, start.y], {
-      stroke: color, strokeWidth, fill: '', strokeDashArray: dashPattern, selectable: false,
+      stroke: color, strokeWidth, fill: '', strokeDashArray: dash, selectable: false,
+    });
+    // 직각 표시 (항상 실선)
+    const markD = `M ${start.x + sx*s} ${start.y} L ${start.x + sx*s} ${start.y + sy*s} L ${start.x} ${start.y + sy*s}`;
+    const mark = new fabric.Path(markD, {
+      stroke: color, strokeWidth, fill: '', strokeDashArray: null, selectable: false,
     });
     const dot = new fabric.Circle({
       left: start.x, top: start.y,
@@ -1127,7 +1144,7 @@ const Tools = (() => {
       fill: color, stroke: '',
       originX: 'center', originY: 'center', selectable: false,
     });
-    const group = new fabric.Group([vLine, hLine, dot], { lockUniScaling: true });
+    const group = new fabric.Group([vLine, hLine, mark, dot], { lockUniScaling: true });
     group._type = 'projection';
     return group;
   }
