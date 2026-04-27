@@ -589,10 +589,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (!isFinite(yMin) || !isFinite(yMax)) return;
 
-    const yRange = yMax - yMin || 1;
     const targetPx = 260;
+    const yRange = yMax - yMin || 1;
     const yscale = Math.round(Math.max(1, Math.min(500, targetPx / yRange)));
     document.getElementById('graph-yscale').value = yscale;
+
+    const xRange = xMax - xMin || 1;
+    const xscale = Math.round(Math.max(1, Math.min(500, targetPx / xRange)));
+    document.getElementById('graph-scale').value = xscale;
   }
 
   document.getElementById('graph-autofit-btn').addEventListener('click', _autoFitGraphScale);
