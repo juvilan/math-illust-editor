@@ -148,6 +148,7 @@
     <div class="topt topt-hint" data-tools="polygon">클릭으로 꼭짓점 추가 · 첫 꼭짓점 재클릭 또는 Enter로 완성 · Esc 취소</div>
     <div class="topt topt-hint" data-tools="arc">① 중심 → ② 시작점 → ③ 끝점 클릭 · Esc 취소</div>
     <div class="topt topt-hint" data-tools="projection">시작점 → 끝점 드래그로 수선의 발을 그립니다</div>
+    <div class="topt topt-hint" data-tools="cover">드래그로 흰색 사각형을 그려 그림의 일부를 가립니다 · 선택 후 크기·위치 조정 가능</div>
   </div>
 
   <!-- ══ Main ══ -->
@@ -214,6 +215,9 @@
       </button>
       <button class="tool-btn" data-tool="bucket" title="버킷채우기 (F)">
         <span class="tool-icon">🪣</span><small>채우기</small>
+      </button>
+      <button class="tool-btn" data-tool="cover" title="가리기 (W) — 흰색으로 영역 덮기">
+        <span class="tool-icon">⬜</span><small>가리기</small>
       </button>
       <div id="rail-scroll-hint">▼</div>
     </div>
@@ -472,6 +476,7 @@
         <tr><td>텍스트</td><td colspan="2">T</td></tr>
         <tr><td>각도</td><td colspan="2">G</td></tr>
         <tr><td>버킷채우기</td><td colspan="2">F</td></tr>
+        <tr><td>가리기</td><td colspan="2">W</td></tr>
         <tr><td>호치수</td><td colspan="2">R</td></tr>
         <tr><td>좌표축</td><td colspan="2">X</td></tr>
         <tr><td>투영</td><td colspan="2">P</td></tr>

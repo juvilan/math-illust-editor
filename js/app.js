@@ -301,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const _TYPE_META = {
     'math-text': '수식', 'math-label': '레이블', 'bg-image': '배경 이미지',
     'axis': '좌표축', 'graph': '그래프', 'angle': '각도', 'arc-dim': '호치수',
-    'projection': '수선의 발', 'axis-label': '축 레이블',
+    'projection': '수선의 발', 'axis-label': '축 레이블', 'cover-rect': '가리기',
   };
 
   function _syncInspector(obj) {
@@ -794,7 +794,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const toolMap = {
       v: 'select', l: 'line', t: 'text', g: 'angle', f: 'bucket',
       r: 'arc-dim', x: 'axis', e: 'graph', o: 'circle', s: 'rect',
-      p: 'projection', n: 'polygon', a: 'arc', q: 'label',
+      p: 'projection', n: 'polygon', a: 'arc', q: 'label', w: 'cover',
     };
     const key = e.key.toLowerCase();
     if (toolMap[key] && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {

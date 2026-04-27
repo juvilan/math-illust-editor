@@ -375,6 +375,15 @@ const Tools = (() => {
     const obj = buildObject(startPt, p, e);
     if (obj) {
       canvas.add(obj);
+      if (obj._type === 'cover-rect') {
+        const bgImg = canvas.getObjects().find(o => o._type === 'bg-image');
+        if (bgImg) {
+          const bgIdx = canvas.getObjects().indexOf(bgImg);
+          canvas.moveTo(obj, bgIdx + 1);
+        } else {
+          canvas.sendToBack(obj);
+        }
+      }
       canvas.renderAll();
     }
     startPt = null;
@@ -484,6 +493,7 @@ const Tools = (() => {
       case 'circle':     return buildCircleOrEllipse(start, end, true,  e);
       case 'ellipse':    return buildCircleOrEllipse(start, end, false, e);
       case 'rect':       return buildRect(start, end, e);
+      case 'cover':      return buildCoverRect(start, end, e);
       default:           return null;
     }
   }
@@ -607,6 +617,24 @@ const Tools = (() => {
       top:  dy >= 0 ? start.y : start.y - h,
       width: w, height: h,
       fill: _shapeFill(), stroke: _strokeVal(), strokeWidth,
+    });
+  }
+
+  // ── Cover Rect (가리기: 흰색 불투명 직사각형) ──
+  function buildCoverRect(start, end, e) {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const shift = e && e.e && e.e.shiftKey;
+    let w = Math.abs(dx);
+    let h = Math.abs(dy);
+    if (shift) { w = h = Math.max(w, h); }
+    if (w < 2 && h < 2) return null;
+    return new fabric.Rect({
+      left: dx >= 0 ? start.x : start.x - w,
+      top:  dy >= 0 ? start.y : start.y - h,
+      width: w, height: h,
+      fill: '#ffffff', stroke: null, strokeWidth: 0,
+      _type: 'cover-rect',
     });
   }
 
