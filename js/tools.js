@@ -1133,18 +1133,16 @@ const Tools = (() => {
     const hLine = new fabric.Line([start.x, start.y, end.x, start.y], {
       stroke: color, strokeWidth, fill: '', strokeDashArray: dash, selectable: false,
     });
-    // 직각 표시 (항상 실선)
-    const markD = `M ${start.x + sx*s} ${start.y} L ${start.x + sx*s} ${start.y + sy*s} L ${start.x} ${start.y + sy*s}`;
-    const mark = new fabric.Path(markD, {
-      stroke: color, strokeWidth, fill: '', strokeDashArray: null, selectable: false,
-    });
-    const dot = new fabric.Circle({
-      left: start.x, top: start.y,
-      radius: Math.max(3, strokeWidth * 1.5),
-      fill: color, stroke: '',
-      originX: 'center', originY: 'center', selectable: false,
-    });
-    const group = new fabric.Group([vLine, hLine, mark, dot], { lockUniScaling: true });
+    // 직각 표시: Line 두 개 (fabric.Path는 Group 내 좌표가 어긋남)
+    const markV = new fabric.Line(
+      [start.x + sx*s, start.y, start.x + sx*s, start.y + sy*s],
+      { stroke: color, strokeWidth, fill: '', strokeDashArray: null, selectable: false }
+    );
+    const markH = new fabric.Line(
+      [start.x + sx*s, start.y + sy*s, start.x, start.y + sy*s],
+      { stroke: color, strokeWidth, fill: '', strokeDashArray: null, selectable: false }
+    );
+    const group = new fabric.Group([vLine, hLine, markV, markH], { lockUniScaling: true });
     group._type = 'projection';
     return group;
   }
