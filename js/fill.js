@@ -41,7 +41,11 @@ const FillTool = (() => {
   }
 
   function getBackgroundData(fabricCanvas) {
-    const bgImg = fabricCanvas.backgroundImage;
+    // backgroundImage 우선, 없으면 _type:'bg-image' 캔버스 객체 사용 (C-1)
+    let bgImg = fabricCanvas.backgroundImage;
+    if (!bgImg) {
+      bgImg = fabricCanvas.getObjects().find(o => o._type === 'bg-image') || null;
+    }
     if (!bgImg) return null;
 
     const element = bgImg.getElement();

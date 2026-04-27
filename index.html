@@ -9,22 +9,73 @@
 <body>
 <div id="app">
 
-  <div id="toolbar">
-    <div class="toolbar-group">
-      <label class="btn" for="file-input">📂 불러오기</label>
+  <!-- ══ Top Bar ══ -->
+  <div id="top-bar">
+    <!-- 파일 -->
+    <div class="tbar-group">
+      <label class="btn" for="file-input" title="이미지 불러오기">📂 불러오기</label>
       <input type="file" id="file-input" accept="image/*,.svg,.svgz" hidden>
-      <button id="btn-load-json">📋 작업 열기</button>
+      <button id="btn-load-json" title="작업 파일(.json) 열기">📋 열기</button>
       <input type="file" id="json-input" accept=".json" hidden>
-      <button id="btn-save">💾 저장</button>
-      <button id="btn-export">📤 PNG</button>
-      <button id="btn-export-svg">📤 SVG</button>
+      <button id="btn-save" title="작업 저장">💾 저장</button>
+      <button id="btn-export" title="PNG로 내보내기">PNG</button>
+      <button id="btn-export-svg" title="SVG로 내보내기">SVG</button>
     </div>
-    <div class="toolbar-group">
+    <!-- 편집 -->
+    <div class="tbar-group">
+      <button id="btn-undo" title="실행취소 (⌘Z)">↩ 취소</button>
+      <button id="btn-redo" title="다시실행 (⌘⇧Z)">↪ 다시</button>
+    </div>
+    <!-- 레이어·잠금·삭제 -->
+    <div class="tbar-group">
+      <button id="btn-bring-forward" title="앞으로 (레이어)">↑ 앞</button>
+      <button id="btn-send-backward" title="뒤로 (레이어)">↓ 뒤</button>
+      <button id="btn-lock" title="선택 잠금/해제">🔒 잠금</button>
+      <button id="btn-delete" title="삭제 (Delete)">🗑️ 삭제</button>
+    </div>
+    <!-- 변환 -->
+    <div class="tbar-group">
+      <button id="btn-flip-x" title="좌우 대칭">↔</button>
+      <button id="btn-flip-y" title="상하 대칭">↕</button>
+      <button id="btn-rotate-ccw" title="반시계 90°">↺90°</button>
+      <button id="btn-rotate-cw"  title="시계 90°">↻90°</button>
+    </div>
+    <!-- 설정 -->
+    <div class="tbar-group ml-auto">
+      <button id="btn-grid-snap" title="그리드 스냅 ON/OFF">⊞ 스냅</button>
+      <input type="number" id="grid-size-input" min="2" max="100" value="10" style="width:40px" title="그리드 크기(px)">
+      <button onclick="document.getElementById('shortcut-modal').classList.toggle('hidden')" title="단축키 도움말">?</button>
+      <button id="btn-inspector-toggle" title="속성 패널 열기/닫기" class="active">▶</button>
+    </div>
+  </div>
+
+  <!-- ══ Tool-Options Bar ══ -->
+  <div id="tool-options-bar">
+
+    <!-- 색상: 대부분 도구 -->
+    <div class="topt" data-tools="line,point,arc,circle,ellipse,rect,polygon,label,text,angle,arc-dim,projection,bucket">
       <label>색상</label>
-      <input type="color" id="color-picker" value="#000000">
+      <input type="color" id="color-picker" value="#000000" title="선·텍스트 색상">
+    </div>
+
+    <!-- 두께: 선 계열 -->
+    <div class="topt" data-tools="line,arc,circle,ellipse,rect,polygon,projection,angle,arc-dim">
       <label>두께</label>
       <input type="range" id="stroke-width" min="1" max="10" value="2">
-      <span id="stroke-width-val">2</span>
+      <span class="val-label" id="stroke-width-val">2</span>
+    </div>
+
+    <!-- 선 스타일 -->
+    <div class="topt" data-tools="line,arc,circle,ellipse,rect,polygon,projection">
+      <label>선</label>
+      <select id="line-style" title="선 스타일">
+        <option value="solid">실선</option>
+        <option value="dashed">점선</option>
+      </select>
+    </div>
+
+    <!-- 점선 패턴 -->
+    <div class="topt" data-tools="line,arc,circle,ellipse,rect,polygon">
       <label>점선</label>
       <select id="dash-pattern">
         <option value="4,4">촘촘</option>
@@ -32,105 +83,205 @@
         <option value="14,6">긴선</option>
         <option value="14,6,4,6">일점쇄선</option>
       </select>
-      <label>불투명도</label>
-      <input type="range" id="opacity-input" min="10" max="100" step="10" value="30">
-      <span id="opacity-val">30%</span>
-      <button id="btn-grid-snap" title="그리드 스냅 ON/OFF">⊞ 스냅</button>
-      <input type="number" id="grid-size-input" min="2" max="100" value="10" style="width:44px" title="그리드 크기(px)">
     </div>
-    <div class="toolbar-group">
-      <label>선</label>
-      <select id="line-style" title="선 스타일">
-        <option value="solid">실선</option>
-        <option value="dashed">점선</option>
-      </select>
+
+    <!-- 화살표: 선 도구만 -->
+    <div class="topt" data-tools="line">
       <label>화살표</label>
-      <select id="arrow-style" title="화살표 방향">
+      <select id="arrow-style">
         <option value="none">없음</option>
         <option value="end">→ 한쪽</option>
         <option value="both">↔ 양쪽</option>
       </select>
+    </div>
+
+    <div class="topt-sep" data-tools="line,arc,circle,ellipse,rect,polygon,point"></div>
+
+    <!-- 점 스타일 -->
+    <div class="topt" data-tools="point">
       <label>점</label>
-      <select id="point-style" title="점 종류">
+      <select id="point-style">
         <option value="closed">● 닫힘</option>
         <option value="open">○ 열림</option>
       </select>
     </div>
-    <div class="toolbar-group">
-      <button id="btn-undo">↩ 실행취소</button>
-      <button id="btn-redo">↪ 다시실행</button>
-      <button id="btn-lock">🔒 잠금</button>
-      <button id="btn-delete">🗑️ 삭제</button>
+
+    <!-- 채우기: 닫힌 도형 -->
+    <div class="topt" data-tools="arc,circle,ellipse,rect,polygon,bucket">
+      <label class="modal-check">
+        <input type="checkbox" id="fill-enabled"> 채우기
+      </label>
+      <input type="color" id="fill-color" value="#aaaaaa" title="채우기 색상">
     </div>
-    <div class="toolbar-group">
-      <button id="btn-flip-x" title="좌우 대칭">↔ 좌우</button>
-      <button id="btn-flip-y" title="상하 대칭">↕ 상하</button>
-      <button id="btn-rotate-ccw" title="반시계 90°">↺ 90°</button>
-      <button id="btn-rotate-cw" title="시계 90°">↻ 90°</button>
-      <input type="number" id="rotate-deg-input" value="45" step="1" style="width:44px" title="회전할 각도">
-      <span>°</span>
-      <button id="btn-rotate-deg">회전</button>
+
+    <!-- 채우기 불투명도 -->
+    <div class="topt" data-tools="arc,circle,ellipse,rect,polygon,bucket">
+      <label>불투명도</label>
+      <input type="range" id="opacity-input" min="5" max="100" step="5" value="30">
+      <span class="val-label" id="opacity-val">30%</span>
     </div>
+
+    <div class="topt-sep" data-tools="label"></div>
+
+    <!-- 레이블 -->
+    <div class="topt" data-tools="label">
+      <label>레이블</label>
+      <input type="text" id="label-current" value="A" maxlength="2" title="현재 레이블">
+      <button id="btn-label-reset" title="A로 초기화">↺</button>
+    </div>
+
+    <!-- 힌트 메시지 (도구별) -->
+    <div class="topt topt-hint" data-tools="select">객체를 선택하면 오른쪽 속성 패널에서 편집할 수 있습니다</div>
+    <div class="topt topt-hint" data-tools="line">① 시작점 클릭 → ② 끝점 클릭 · Shift: 45° 스냅</div>
+    <div class="topt topt-hint" data-tools="text">클릭하면 LaTeX 수식 입력창이 열립니다</div>
+    <div class="topt topt-hint" data-tools="angle">드래그로 각도 호의 크기를 정한 뒤 라벨을 입력합니다</div>
+    <div class="topt topt-hint" data-tools="arc-dim">시작점 → 끝점 클릭 후 호 치수 라벨을 입력합니다</div>
+    <div class="topt topt-hint" data-tools="axis">클릭하면 좌표축 설정 대화창이 열립니다</div>
+    <div class="topt topt-hint" data-tools="graph">좌표축 위를 클릭하면 함수 그래프를 그릴 수 있습니다</div>
+    <div class="topt topt-hint" data-tools="polygon">클릭으로 꼭짓점 추가 · 첫 꼭짓점 재클릭 또는 Enter로 완성 · Esc 취소</div>
+    <div class="topt topt-hint" data-tools="arc">① 중심 → ② 시작점 → ③ 끝점 클릭 · Esc 취소</div>
+    <div class="topt topt-hint" data-tools="projection">시작점 → 끝점 드래그로 수선의 발을 그립니다</div>
   </div>
 
+  <!-- ══ Main ══ -->
   <div id="main">
-    <div id="sidebar">
-      <!-- 선택 -->
+
+    <!-- Tool Rail -->
+    <div id="tool-rail">
       <button class="tool-btn active" data-tool="select" title="선택 (V)">
         <span class="tool-icon">↖</span><small>선택</small>
       </button>
+
       <div class="tool-divider"></div>
-      <!-- 선 도구 -->
-      <button class="tool-btn" data-tool="line" title="선 (L) — 툴바에서 스타일·화살표 선택">
+      <div class="rail-group-label">기하</div>
+
+      <button class="tool-btn" data-tool="line" title="선 (L)">
         <span class="tool-icon">—</span><small>선</small>
       </button>
-      <div class="tool-divider"></div>
-      <!-- 좌표·그래프 -->
-      <button class="tool-btn" data-tool="axis" title="좌표축 (X) — 클릭해서 크기 입력 후 생성">
-        <span class="tool-icon">⊕</span><small>좌표축</small>
-      </button>
-      <button class="tool-btn" data-tool="graph" title="함수 그래프 (E) — 클릭해서 함수 입력">
-        <span class="tool-icon">∫</span><small>그래프</small>
-      </button>
-      <button class="tool-btn" data-tool="projection" title="점투영 (P)">
-        <span class="tool-icon">⌐</span><small>투영</small>
-      </button>
-      <div class="tool-divider"></div>
-      <!-- 점·도형·텍스트 -->
-      <button class="tool-btn" data-tool="point" title="점 — 툴바에서 닫힘/열림 선택">
+      <button class="tool-btn" data-tool="point" title="점">
         <span class="tool-icon">●</span><small>점</small>
       </button>
-      <button class="tool-btn" data-tool="circle" title="원 (O) — 드래그, Shift: 정원">
+      <button class="tool-btn" data-tool="arc" title="호/부채꼴 (A)">
+        <span class="tool-icon">◜</span><small>호</small>
+      </button>
+      <button class="tool-btn" data-tool="circle" title="원 (O) — Shift: 정원">
         <span class="tool-icon">◯</span><small>원</small>
       </button>
-      <button class="tool-btn" data-tool="ellipse" title="타원 — 드래그, Shift: 정원">
+      <button class="tool-btn" data-tool="ellipse" title="타원">
         <span class="tool-icon">⬭</span><small>타원</small>
       </button>
       <button class="tool-btn" data-tool="rect" title="직사각형 (S) — Shift: 정사각형">
-        <span class="tool-icon">▭</span><small>직사각형</small>
+        <span class="tool-icon">▭</span><small>사각형</small>
+      </button>
+      <button class="tool-btn" data-tool="polygon" title="다각형 (N)">
+        <span class="tool-icon">△</span><small>다각형</small>
+      </button>
+
+      <div class="tool-divider"></div>
+      <div class="rail-group-label">좌표</div>
+
+      <button class="tool-btn" data-tool="axis" title="좌표축 (X)">
+        <span class="tool-icon">⊕</span><small>좌표축</small>
+      </button>
+      <button class="tool-btn" data-tool="graph" title="그래프 (E)">
+        <span class="tool-icon">∫</span><small>그래프</small>
+      </button>
+      <button class="tool-btn" data-tool="projection" title="투영 (P)">
+        <span class="tool-icon">⌐</span><small>투영</small>
+      </button>
+
+      <div class="tool-divider"></div>
+      <div class="rail-group-label">주석</div>
+
+      <button class="tool-btn" data-tool="label" title="레이블 (Q)">
+        <span class="tool-icon" style="font-style:normal;font-weight:600">A</span><small>레이블</small>
       </button>
       <button class="tool-btn" data-tool="text" title="텍스트 (T)">
         <span class="tool-icon">T</span><small>텍스트</small>
       </button>
-      <div class="tool-divider"></div>
-      <!-- 측정·채우기 -->
-      <button class="tool-btn" data-tool="angle" title="각도 표시 (G)">
+      <button class="tool-btn" data-tool="angle" title="각도 (G)">
         <span class="tool-icon">∠</span><small>각도</small>
       </button>
-      <button class="tool-btn" data-tool="arc-dim" title="호 치수 (R)">
+      <button class="tool-btn" data-tool="arc-dim" title="호치수 (R)">
         <span class="tool-icon">⌒</span><small>호치수</small>
       </button>
-      <button class="tool-btn" data-tool="bucket" title="버킷 채우기 (F)">
+      <button class="tool-btn" data-tool="bucket" title="버킷채우기 (F)">
         <span class="tool-icon">🪣</span><small>채우기</small>
       </button>
+      <div id="rail-scroll-hint">▼</div>
     </div>
 
+    <!-- Canvas -->
     <div id="canvas-container">
       <div id="grid-overlay" class="hidden"></div>
       <canvas id="main-canvas"></canvas>
     </div>
-  </div>
-</div>
+
+    <!-- Inspector Panel -->
+    <div id="inspector-panel">
+      <div id="insp-empty">
+        <div class="insp-empty-icon">🖱️</div>
+        <div>선택된 객체 없음</div>
+        <div style="font-size:10px;margin-top:4px;color:var(--surface2)">객체를 클릭하면<br>속성이 표시됩니다</div>
+      </div>
+      <div id="insp-obj" class="hidden">
+        <div class="insp-header">
+          <span class="insp-type" id="insp-type">객체</span>
+          <div class="insp-pos">
+            <span>X:<b id="insp-x">0</b></span>
+            <span>Y:<b id="insp-y">0</b></span>
+          </div>
+        </div>
+        <!-- 외곽선 -->
+        <div class="insp-section" id="insp-stroke-section">
+          <div class="insp-section-title">외곽선</div>
+          <div class="insp-row">
+            <label>색상</label>
+            <input type="color" id="insp-stroke-color" value="#000000">
+          </div>
+          <div class="insp-row">
+            <label>두께</label>
+            <input type="range" id="insp-stroke-width" min="1" max="10" value="2">
+            <span class="val-label" id="insp-stroke-width-val">2</span>
+          </div>
+        </div>
+        <!-- 채우기 -->
+        <div class="insp-section" id="insp-fill-section">
+          <div class="insp-section-title">채우기</div>
+          <div class="insp-row">
+            <label class="modal-check">
+              <input type="checkbox" id="insp-fill-enabled"> 활성
+            </label>
+            <input type="color" id="insp-fill-color" value="#aaaaaa">
+          </div>
+          <div class="insp-row">
+            <label>불투명도</label>
+            <input type="range" id="insp-opacity" min="5" max="100" step="5" value="30">
+            <span class="val-label" id="insp-opacity-val">30%</span>
+          </div>
+        </div>
+        <!-- 레이어 -->
+        <div class="insp-section">
+          <div class="insp-section-title">레이어</div>
+          <div class="insp-row">
+            <button id="insp-bring-fwd" style="flex:1">↑ 앞으로</button>
+            <button id="insp-send-back" style="flex:1">↓ 뒤로</button>
+          </div>
+          <div class="insp-row">
+            <button id="insp-lock" style="flex:1">🔒 잠금</button>
+          </div>
+        </div>
+        <!-- 삭제 -->
+        <div class="insp-section">
+          <button id="insp-delete" class="btn-danger">🗑️ 삭제</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /#main -->
+</div><!-- /#app -->
+
+<!-- ══ Modals ══ -->
 
 <!-- 텍스트 입력 모달 -->
 <div id="text-modal" class="modal hidden">
@@ -140,7 +291,7 @@
     <div class="modal-row">
       <label>글자 크기</label>
       <input type="range" id="font-size-input" min="10" max="60" value="18">
-      <span id="font-size-val">18</span>
+      <span class="val-label" id="font-size-val">18</span>
     </div>
     <div class="modal-buttons">
       <button id="text-ok">확인</button>
@@ -157,7 +308,7 @@
     <div class="modal-row">
       <label>글자 크기</label>
       <input type="range" id="angle-font-size-input" min="10" max="60" value="18">
-      <span id="angle-font-size-val">18</span>
+      <span class="val-label" id="angle-font-size-val">18</span>
     </div>
     <label class="modal-check">
       <input type="checkbox" id="angle-no-label"> 각도 표시만 (숫자 없음)
@@ -193,19 +344,19 @@
     <div class="modal-row">
       <label>x 범위</label>
       <input type="number" id="graph-xmin" value="-5" step="0.5" style="width:52px">
-      <span style="margin:0 4px">~</span>
+      <span style="margin:0 4px;color:var(--subtext0)">~</span>
       <input type="number" id="graph-xmax" value="5" step="0.5" style="width:52px">
     </div>
     <div class="modal-row">
       <label>x 비율</label>
       <input type="number" id="graph-scale" min="1" max="500" step="1" value="40" style="width:52px">
-      <small>px/단위</small>
-      <small id="graph-scale-hint" style="color:#888;margin-left:4px"></small>
+      <small style="color:var(--subtext0)">px/단위</small>
+      <small id="graph-scale-hint" style="color:var(--overlay0);margin-left:4px"></small>
     </div>
     <div class="modal-row">
       <label>y 비율</label>
       <input type="number" id="graph-yscale" min="1" max="500" step="1" value="40" style="width:52px">
-      <small>px/단위</small>
+      <small style="color:var(--subtext0)">px/단위</small>
     </div>
     <div class="modal-buttons">
       <button id="graph-ok">확인</button>
@@ -220,8 +371,7 @@
     <div class="modal-title">축 설정</div>
     <div class="modal-hint">
       모든 값의 단위는 <b>픽셀(px)</b>입니다.<br>
-      <b>눈금 간격</b>을 설정하면 그래프 도구에서 비율을 자동 감지합니다.<br>
-      예) x축(+) 200, 눈금 간격 40 → x축에 1~5 눈금 5개 생성
+      <b>눈금 간격</b>을 설정하면 그래프 도구에서 비율을 자동 감지합니다.
     </div>
     <div class="modal-row">
       <label>x축 (+)</label>
@@ -244,9 +394,9 @@
       <input type="number" id="axis-label-size" min="8" max="60" step="1" value="18">
     </div>
     <div class="modal-row">
-      <label>눈금 간격 (px)</label>
+      <label>눈금 간격(px)</label>
       <input type="number" id="axis-tick-spacing" min="0" max="500" step="5" value="0">
-      <small style="color:#888">0=없음</small>
+      <small style="color:var(--subtext0)">0=없음</small>
     </div>
     <label class="modal-check">
       <input type="checkbox" id="axis-show-ticks" checked> 눈금 선
@@ -270,13 +420,15 @@
       <tbody>
         <tr><td colspan="3" class="shortcut-section">도구 선택</td></tr>
         <tr><td>선택</td><td colspan="2">V</td></tr>
-        <tr><td>선 (실선/점선/화살표는 툴바 선택)</td><td colspan="2">L</td></tr>
-        <tr><td>점 (닫힘/열림은 툴바 선택)</td><td colspan="2">없음</td></tr>
+        <tr><td>선</td><td colspan="2">L</td></tr>
+        <tr><td>호/부채꼴</td><td colspan="2">A</td></tr>
         <tr><td>원</td><td colspan="2">O</td></tr>
         <tr><td>직사각형</td><td colspan="2">S</td></tr>
+        <tr><td>다각형</td><td colspan="2">N</td></tr>
+        <tr><td>레이블</td><td colspan="2">Q</td></tr>
         <tr><td>텍스트</td><td colspan="2">T</td></tr>
         <tr><td>각도</td><td colspan="2">G</td></tr>
-        <tr><td>채우기</td><td colspan="2">F</td></tr>
+        <tr><td>버킷채우기</td><td colspan="2">F</td></tr>
         <tr><td>호치수</td><td colspan="2">R</td></tr>
         <tr><td>좌표축</td><td colspan="2">X</td></tr>
         <tr><td>투영</td><td colspan="2">P</td></tr>
@@ -286,12 +438,15 @@
         <tr><td>붙여넣기</td><td>⌘V</td><td>Ctrl+V</td></tr>
         <tr><td>실행취소</td><td>⌘Z</td><td>Ctrl+Z</td></tr>
         <tr><td>다시실행</td><td>⌘⇧Z</td><td>Ctrl+Y</td></tr>
-        <tr><td>삭제</td><td>Delete / Backspace</td><td>Delete / Backspace</td></tr>
+        <tr><td>삭제</td><td colspan="2">Delete / Backspace</td></tr>
         <tr><td colspan="3" class="shortcut-section">이동 (선택 도구)</td></tr>
         <tr><td>1px 이동</td><td colspan="2">방향키</td></tr>
         <tr><td>10px 이동</td><td colspan="2">Shift+방향키</td></tr>
+        <tr><td colspan="3" class="shortcut-section">도형 완성</td></tr>
+        <tr><td>다각형·호 완성</td><td colspan="2">Enter 또는 첫 꼭짓점 재클릭</td></tr>
+        <tr><td>현재 작업 취소</td><td colspan="2">Esc</td></tr>
         <tr><td colspan="3" class="shortcut-section">기타</td></tr>
-        <tr><td>45° 스냅</td><td colspan="2">Shift+드래그</td></tr>
+        <tr><td>45° 스냅 (선)</td><td colspan="2">Shift+클릭</td></tr>
         <tr><td>정원/정사각형</td><td colspan="2">Shift+드래그</td></tr>
         <tr><td>이 창 닫기</td><td colspan="2">? 또는 Esc</td></tr>
       </tbody>
@@ -301,6 +456,8 @@
     </div>
   </div>
 </div>
+
+<div id="toast" class="hidden"></div>
 
 <script>MathJax = { startup: { typeset: false }, svg: { fontCache: 'local' } };</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>

@@ -28,7 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      Tools.setTool(btn.dataset.tool);
+      const tool = btn.dataset.tool;
+      Tools.setTool(tool);
+      _updateToolOpts(tool);
     });
   });
 
@@ -37,9 +39,43 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
     const btn = document.querySelector(`.tool-btn[data-tool="${e.detail}"]`);
     if (btn) btn.classList.add('active');
+    _updateToolOpts(e.detail);
   });
 
-  // 단일/그룹/다중선택 모두 처리하는 헬퍼
+  // ── Tool-Options Bar: 도구에 맞는 옵션만 표시 ──
+  function _updateToolOpts(tool) {
+    document.querySelectorAll('#tool-options-bar .topt, #tool-options-bar .topt-sep').forEach(el => {
+      const tools = el.dataset.tools ? el.dataset.tools.split(',') : [];
+      el.classList.toggle('hidden', !tools.includes(tool));
+    });
+  }
+  // 초기 상태: select 도구
+  _updateToolOpts('select');
+
+  // ── Toast 알림 ──
+  let _toastTimer = null;
+  const _toastEl = document.getElementById('toast');
+  document.addEventListener('ui:toast', (e) => {
+    clearTimeout(_toastTimer);
+    _toastEl.textContent = e.detail;
+    _toastEl.classList.remove('hidden', 'toast-fade-out');
+    _toastTimer = setTimeout(() => {
+      _toastEl.classList.add('toast-fade-out');
+      setTimeout(() => _toastEl.classList.add('hidden'), 260);
+    }, 3000);
+  });
+
+  // ── Tool Rail 스크롤 힌트 ──
+  const railEl = document.getElementById('tool-rail');
+  const railHint = document.getElementById('rail-scroll-hint');
+  function _updateRailHint() {
+    const atBottom = railEl.scrollTop + railEl.clientHeight >= railEl.scrollHeight - 4;
+    railHint.style.opacity = atBottom ? '0' : '1';
+  }
+  railEl.addEventListener('scroll', _updateRailHint, { passive: true });
+  requestAnimationFrame(_updateRailHint);
+
+  // ── eachLeaf: 단일/그룹/다중선택 처리 ──
   function eachLeaf(fn) {
     const active = canvas.getActiveObject();
     if (!active) return;
@@ -55,15 +91,26 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.renderAll();
   }
 
+  // ── rgba 헬퍼 ──
+  function _hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1,3), 16);
+    const g = parseInt(hex.slice(3,5), 16);
+    const b = parseInt(hex.slice(5,7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+
   // ── Color ──
   document.getElementById('color-picker').addEventListener('input', (e) => {
     const c = e.target.value;
     Tools.setColor(c);
     eachLeaf((child) => {
-      if (child.type === 'image') return; // math-text/label은 SVG가 색 고정 — 건너뜀
+      if (child.type === 'image') return;
       if (child.type === 'text' || child.type === 'i-text') child.set({ fill: c });
-      else child.set({ stroke: c, fill: c });
+      else child.set({ stroke: c });
     });
+    // Inspector 동기화 (Issue #3)
+    document.getElementById('insp-stroke-color').value = c;
+    CanvasManager.snapshot();
   });
 
   // ── Stroke width ──
@@ -75,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (child.type === 'image') return;
       if (child.type !== 'text' && child.type !== 'i-text') child.set({ strokeWidth: val });
     });
+    CanvasManager.snapshot();
   });
 
   // ── Dash pattern ──
@@ -87,22 +135,49 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ── Opacity (영역 채우기에 반영) ──
+  // ── Opacity (채우기 투명도) ──
   document.getElementById('opacity-input').addEventListener('input', (e) => {
     const val = parseInt(e.target.value);
     document.getElementById('opacity-val').textContent = val + '%';
     Tools.setFillOpacity(val);
-    const active = canvas.getActiveObject();
-    if (active && active.type === 'polygon') {
-      active.set({ opacity: val / 100 });
-      canvas.renderAll();
-    }
+    const rgba = _hexToRgba(document.getElementById('fill-color').value, val / 100);
+    eachLeaf((child) => {
+      if (child.type === 'image' || child.type === 'text' || child.type === 'i-text') return;
+      if (child.fill && child.fill !== '') child.set({ fill: rgba });
+    });
+    canvas.renderAll();
   });
 
   // ── 선·화살표·점 스타일 ──
   document.getElementById('line-style').addEventListener('change', (e) => Tools.setLineStyle(e.target.value));
   document.getElementById('arrow-style').addEventListener('change', (e) => Tools.setArrowStyle(e.target.value));
   document.getElementById('point-style').addEventListener('change', (e) => Tools.setPointStyle(e.target.value));
+
+  // ── Label ──
+  document.getElementById('label-current').addEventListener('change', (e) => {
+    Tools.setCurrentLabel(e.target.value.trim() || 'A');
+  });
+  document.getElementById('label-current').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') e.target.blur();
+  });
+  document.getElementById('btn-label-reset').addEventListener('click', () => {
+    Tools.setCurrentLabel('A');
+  });
+
+  // ── Fill (도구 기본값) ──
+  document.getElementById('fill-enabled').addEventListener('change', (e) => {
+    Tools.setShapeFillEnabled(e.target.checked);
+  });
+  document.getElementById('fill-color').addEventListener('input', (e) => {
+    Tools.setShapeFillColor(e.target.value);
+    const opacity = parseInt(document.getElementById('opacity-input').value) / 100;
+    const rgba = _hexToRgba(e.target.value, opacity);
+    eachLeaf((child) => {
+      if (child.type === 'image' || child.type === 'text' || child.type === 'i-text') return;
+      if (child.fill && child.fill !== '') child.set({ fill: rgba });
+    });
+    canvas.renderAll();
+  });
 
   // ── Actions ──
   document.getElementById('btn-export').addEventListener('click', () => CanvasManager.exportPNG());
@@ -113,11 +188,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-lock').addEventListener('click', () => {
     const locked = Tools.toggleLock();
-    document.getElementById('btn-lock').textContent = locked ? '🔓 잠금해제' : '🔒 잠금';
+    if (locked === undefined) return;
+    document.getElementById('btn-lock').textContent = locked ? '🔓 해제' : '🔒 잠금';
+    // Inspector 잠금 버튼도 동기화 (Issue #4)
+    const inspLock = document.getElementById('insp-lock');
+    inspLock.textContent = locked ? '🔓 해제' : '🔒 잠금';
+    inspLock.style.borderColor = locked ? 'var(--yellow)' : '';
+    inspLock.style.color = locked ? 'var(--yellow)' : '';
+    CanvasManager.snapshot();
   });
 
   const _gridOverlay = document.getElementById('grid-overlay');
-
   document.getElementById('btn-grid-snap').addEventListener('click', () => {
     const on = Tools.toggleGridSnap();
     document.getElementById('btn-grid-snap').classList.toggle('active', on);
@@ -143,6 +224,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-delete').addEventListener('click', deleteActive);
 
+  // ── Z-order ──
+  document.getElementById('btn-bring-forward').addEventListener('click', () => {
+    const obj = canvas.getActiveObject();
+    if (!obj) return;
+    canvas.bringForward(obj);
+    canvas.renderAll();
+    CanvasManager.snapshot();
+  });
+  document.getElementById('btn-send-backward').addEventListener('click', () => {
+    const obj = canvas.getActiveObject();
+    if (!obj) return;
+    canvas.sendBackwards(obj);
+    canvas.renderAll();
+    CanvasManager.snapshot();
+  });
+
   // ── 대칭 / 회전 ──
   function transformActive(fn) {
     const obj = canvas.getActiveObject();
@@ -150,40 +247,239 @@ document.addEventListener('DOMContentLoaded', () => {
     fn(obj);
     obj.setCoords();
     canvas.renderAll();
+    CanvasManager.snapshot();
   }
 
   document.getElementById('btn-flip-x').addEventListener('click', () => {
     transformActive(obj => obj.set({ flipX: !obj.flipX }));
   });
-
   document.getElementById('btn-flip-y').addEventListener('click', () => {
     transformActive(obj => obj.set({ flipY: !obj.flipY }));
   });
-
   document.getElementById('btn-rotate-ccw').addEventListener('click', () => {
     transformActive(obj => obj.set({ angle: ((obj.angle || 0) - 90 + 360) % 360 }));
   });
-
   document.getElementById('btn-rotate-cw').addEventListener('click', () => {
     transformActive(obj => obj.set({ angle: ((obj.angle || 0) + 90) % 360 }));
   });
 
-  function applyRotateDeg() {
-    const deg = parseFloat(document.getElementById('rotate-deg-input').value) || 0;
-    transformActive(obj => obj.set({ angle: ((obj.angle || 0) + deg) % 360 }));
+  // ── Inspector Panel ──
+  const _inspPanel  = document.getElementById('inspector-panel');
+  const _inspEmpty  = document.getElementById('insp-empty');
+  const _inspObj    = document.getElementById('insp-obj');
+  const _main       = document.getElementById('main');
+
+  // Inspector 열기/닫기
+  document.getElementById('btn-inspector-toggle').addEventListener('click', () => {
+    const hidden = _main.classList.toggle('inspector-hidden');
+    document.getElementById('btn-inspector-toggle').classList.toggle('active', !hidden);
+  });
+
+  // 객체 타입 한글 이름
+  const TYPE_NAMES = {
+    'line': '선', 'path': '경로', 'ellipse': '타원', 'rect': '직사각형',
+    'polygon': '다각형', 'circle': '원', 'image': '이미지', 'text': '텍스트',
+    'i-text': '텍스트', 'group': '그룹',
+  };
+  const _TYPE_META = {
+    'math-text': '수식', 'math-label': '레이블', 'bg-image': '배경 이미지',
+    'axis': '좌표축', 'graph': '그래프', 'angle': '각도', 'arc-dim': '호치수',
+    'projection': '수선의 발',
+  };
+
+  function _syncInspector(obj) {
+    if (!obj || obj._isTempPreview) { _clearInspector(); return; }
+    _inspEmpty.classList.add('hidden');
+    _inspObj.classList.remove('hidden');
+
+    // 타입 이름
+    const metaName = obj._type ? _TYPE_META[obj._type] : null;
+    const typeName = metaName || TYPE_NAMES[obj.type] || obj.type;
+    document.getElementById('insp-type').textContent = typeName;
+
+    // 위치
+    document.getElementById('insp-x').textContent = Math.round(obj.left || 0);
+    document.getElementById('insp-y').textContent = Math.round(obj.top  || 0);
+
+    // 외곽선 (이미지 제외)
+    const strokeSection = document.getElementById('insp-stroke-section');
+    if (obj.type === 'image') {
+      strokeSection.style.display = 'none';
+    } else {
+      strokeSection.style.display = '';
+      const sc = obj.stroke || '#000000';
+      const scHex = _toHex(sc);
+      document.getElementById('insp-stroke-color').value = scHex;
+      document.getElementById('insp-stroke-width').value = obj.strokeWidth || 1;
+      document.getElementById('insp-stroke-width-val').textContent = obj.strokeWidth || 1;
+      // 툴바 동기화 (Issue #2/#3)
+      document.getElementById('color-picker').value = scHex;
+      document.getElementById('stroke-width').value = obj.strokeWidth || 1;
+      document.getElementById('stroke-width-val').textContent = obj.strokeWidth || 1;
+    }
+
+    // 잠금 상태 (Issue #4)
+    const locked = !!obj._locked;
+    const inspLock = document.getElementById('insp-lock');
+    inspLock.textContent = locked ? '🔓 해제' : '🔒 잠금';
+    inspLock.style.borderColor = locked ? 'var(--yellow)' : '';
+    inspLock.style.color = locked ? 'var(--yellow)' : '';
+
+    // 채우기 (닫힌 도형)
+    const fillSection = document.getElementById('insp-fill-section');
+    const fillableTypes = ['ellipse', 'rect', 'polygon', 'path', 'circle'];
+    if (fillableTypes.includes(obj.type)) {
+      fillSection.style.display = '';
+      const hasFill = obj.fill && obj.fill !== '';
+      document.getElementById('insp-fill-enabled').checked = hasFill;
+      if (hasFill) {
+        const { hex, alpha } = _parseRgba(obj.fill);
+        document.getElementById('insp-fill-color').value = hex;
+        const pct = Math.round(alpha * 100);
+        document.getElementById('insp-opacity').value = pct;
+        document.getElementById('insp-opacity-val').textContent = pct + '%';
+      }
+    } else {
+      fillSection.style.display = 'none';
+    }
   }
 
-  document.getElementById('btn-rotate-deg').addEventListener('click', applyRotateDeg);
-  document.getElementById('rotate-deg-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') applyRotateDeg();
+  function _clearInspector() {
+    _inspEmpty.classList.remove('hidden');
+    _inspObj.classList.add('hidden');
+  }
+
+  // hex → rgb 변환 (Inspector 색상 피커용)
+  function _toHex(color) {
+    if (!color || color === 'transparent') return '#000000';
+    if (color.startsWith('#')) return color.slice(0, 7);
+    const m = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (!m) return '#000000';
+    return '#' + [m[1], m[2], m[3]].map(n => parseInt(n).toString(16).padStart(2, '0')).join('');
+  }
+
+  function _parseRgba(color) {
+    if (!color) return { hex: '#aaaaaa', alpha: 0.3 };
+    const m = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+    if (m) {
+      const hex = '#' + [m[1], m[2], m[3]].map(n => parseInt(n).toString(16).padStart(2, '0')).join('');
+      return { hex, alpha: m[4] !== undefined ? parseFloat(m[4]) : 1 };
+    }
+    if (color.startsWith('#')) return { hex: color.slice(0, 7), alpha: 1 };
+    return { hex: '#aaaaaa', alpha: 0.3 };
+  }
+
+  // Fabric 선택 이벤트
+  canvas.on('selection:created', (e) => _syncInspector(e.selected?.[0] || canvas.getActiveObject()));
+  canvas.on('selection:updated', (e) => _syncInspector(e.selected?.[0] || canvas.getActiveObject()));
+  canvas.on('selection:cleared', () => _clearInspector());
+  canvas.on('object:modified', () => {
+    const obj = canvas.getActiveObject();
+    if (obj) _syncInspector(obj);
   });
+
+  // Inspector 색상 변경
+  document.getElementById('insp-stroke-color').addEventListener('input', (e) => {
+    const c = e.target.value;
+    eachLeaf((child) => {
+      if (child.type === 'image') return;
+      if (child.type === 'text' || child.type === 'i-text') child.set({ fill: c });
+      else child.set({ stroke: c });
+    });
+    // 툴바 동기화 (Issue #3)
+    document.getElementById('color-picker').value = c;
+    Tools.setColor(c);
+    CanvasManager.snapshot();
+  });
+
+  document.getElementById('insp-stroke-width').addEventListener('input', (e) => {
+    const val = parseInt(e.target.value);
+    document.getElementById('insp-stroke-width-val').textContent = val;
+    eachLeaf((child) => {
+      if (child.type === 'image') return;
+      if (child.type !== 'text' && child.type !== 'i-text') child.set({ strokeWidth: val });
+    });
+    CanvasManager.snapshot();
+  });
+
+  document.getElementById('insp-fill-enabled').addEventListener('change', (e) => {
+    const active = canvas.getActiveObject();
+    if (!active) return;
+    if (e.target.checked) {
+      const fc  = document.getElementById('insp-fill-color').value;
+      const pct = parseInt(document.getElementById('insp-opacity').value) / 100;
+      eachLeaf((child) => {
+        if (child.type === 'image' || child.type === 'text' || child.type === 'i-text') return;
+        child.set({ fill: _hexToRgba(fc, pct) });
+      });
+    } else {
+      eachLeaf((child) => {
+        if (child.type !== 'image') child.set({ fill: '' });
+      });
+    }
+    CanvasManager.snapshot();
+  });
+
+  document.getElementById('insp-fill-color').addEventListener('input', (e) => {
+    const pct = parseInt(document.getElementById('insp-opacity').value) / 100;
+    const rgba = _hexToRgba(e.target.value, pct);
+    eachLeaf((child) => {
+      if (child.type === 'image' || child.type === 'text' || child.type === 'i-text') return;
+      if (child.fill && child.fill !== '') child.set({ fill: rgba });
+    });
+    canvas.renderAll();
+  });
+
+  document.getElementById('insp-opacity').addEventListener('input', (e) => {
+    const val = parseInt(e.target.value);
+    document.getElementById('insp-opacity-val').textContent = val + '%';
+    const fc = document.getElementById('insp-fill-color').value;
+    const rgba = _hexToRgba(fc, val / 100);
+    eachLeaf((child) => {
+      if (child.type === 'image' || child.type === 'text' || child.type === 'i-text') return;
+      if (child.fill && child.fill !== '') child.set({ fill: rgba });
+    });
+    canvas.renderAll();
+  });
+
+  // Inspector 레이어 버튼
+  document.getElementById('insp-bring-fwd').addEventListener('click', () => {
+    const obj = canvas.getActiveObject();
+    if (!obj) return;
+    canvas.bringForward(obj);
+    canvas.renderAll();
+    CanvasManager.snapshot();
+  });
+  document.getElementById('insp-send-back').addEventListener('click', () => {
+    const obj = canvas.getActiveObject();
+    if (!obj) return;
+    canvas.sendBackwards(obj);
+    canvas.renderAll();
+    CanvasManager.snapshot();
+  });
+
+  // Inspector 잠금 (Issue #4)
+  document.getElementById('insp-lock').addEventListener('click', () => {
+    const locked = Tools.toggleLock();
+    if (locked === undefined) return;
+    const btn = document.getElementById('insp-lock');
+    btn.textContent = locked ? '🔓 해제' : '🔒 잠금';
+    btn.style.borderColor = locked ? 'var(--yellow)' : '';
+    btn.style.color = locked ? 'var(--yellow)' : '';
+    // 상단 잠금 버튼도 동기화
+    document.getElementById('btn-lock').textContent = locked ? '🔓 해제' : '🔒 잠금';
+    CanvasManager.snapshot();
+  });
+
+  // Inspector 삭제
+  document.getElementById('insp-delete').addEventListener('click', deleteActive);
 
   // ── Shortcut overlay ──
   document.getElementById('shortcut-close').addEventListener('click', () => {
     document.getElementById('shortcut-modal').classList.add('hidden');
   });
 
-  // ── Graph modal — dropdown setup ──
+  // ── Graph modal ──
   const _graphFnSelect = document.getElementById('graph-fn-type');
   Tools.GRAPH_FN_DEFS.forEach(def => {
     const opt = document.createElement('option');
@@ -204,15 +500,15 @@ document.addEventListener('DOMContentLoaded', () => {
     row.style.flexWrap = 'wrap';
     row.style.gap = '6px';
     def.params.forEach(({k, v, s}) => {
-      const lbl  = document.createElement('label');
+      const lbl = document.createElement('label');
       lbl.textContent = k + ' =';
       lbl.style.cssText = 'white-space:nowrap;margin-right:2px';
-      const inp  = document.createElement('input');
-      inp.type   = 'number';
+      const inp = document.createElement('input');
+      inp.type = 'number';
       inp.className = 'graph-param';
       inp.dataset.key = k;
-      inp.value  = v;
-      inp.step   = s;
+      inp.value = v;
+      inp.step = s;
       inp.style.width = '52px';
       row.appendChild(lbl);
       row.appendChild(inp);
@@ -249,15 +545,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') Tools.cancelGraph();
   });
   document.getElementById('graph-expr').addEventListener('input', _updateGraphPreview);
-
-  // 초기 params area 생성 (기본 선택 함수)
   _updateGraphParamsArea(_graphFnSelect.value);
   _updateGraphPreview();
 
-  // ── Graph modal — buttons ──
   document.getElementById('graph-ok').addEventListener('click', () => Tools.confirmGraph());
   document.getElementById('graph-cancel').addEventListener('click', () => Tools.cancelGraph());
-
   document.getElementById('graph-expr').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') Tools.confirmGraph();
     if (e.key === 'Escape') Tools.cancelGraph();
@@ -266,20 +558,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Axis ratio modal ──
   document.getElementById('axis-ratio-ok').addEventListener('click', () => Tools.confirmAxisRatio());
   document.getElementById('axis-ratio-cancel').addEventListener('click', () => Tools.cancelAxisRatio());
-
-  document.getElementById('axis-x-len').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') Tools.confirmAxisRatio();
-    if (e.key === 'Escape') Tools.cancelAxisRatio();
-  });
-  document.getElementById('axis-y-len').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') Tools.confirmAxisRatio();
-    if (e.key === 'Escape') Tools.cancelAxisRatio();
+  ['axis-x-len', 'axis-y-len'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') Tools.confirmAxisRatio();
+      if (e.key === 'Escape') Tools.cancelAxisRatio();
+    });
   });
 
   // ── Text modal ──
   document.getElementById('text-ok').addEventListener('click', () => Tools.confirmText());
   document.getElementById('text-cancel').addEventListener('click', () => Tools.cancelText());
-
   document.getElementById('text-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') Tools.confirmText();
     if (e.key === 'Escape') Tools.cancelText();
@@ -290,16 +578,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('angle-font-size-val').textContent = e.target.value;
     Tools.setFontSize(e.target.value);
   });
-
   document.getElementById('angle-ok').addEventListener('click', () => Tools.confirmAngle());
   document.getElementById('angle-cancel').addEventListener('click', () => Tools.cancelAngle());
-
   document.getElementById('angle-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') Tools.confirmAngle();
     if (e.key === 'Escape') Tools.cancelAngle();
   });
 
-  // ── Font size (in text modal) ──
+  // ── Font size (text modal) ──
   document.getElementById('font-size-input').addEventListener('input', (e) => {
     document.getElementById('font-size-val').textContent = e.target.value;
     Tools.setFontSize(e.target.value);
@@ -307,13 +593,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Copy / Paste ──
   let _clipboard = null;
-
   document.addEventListener('keydown', (e) => {
+    if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
     if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
       const active = canvas.getActiveObject();
       if (!active) return;
       active.clone((cloned) => { _clipboard = cloned; },
-        ['_type', '_latex', '_axisData', '_isTempPreview']);
+        ['_type', '_latex', '_axisData']);
       return;
     }
     if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
@@ -331,7 +617,7 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.setActiveObject(cloned);
         canvas.requestRenderAll();
         _clipboard = cloned;
-      }, ['_type', '_latex', '_axisData', '_isTempPreview']);
+      }, ['_type', '_latex', '_axisData']);
       return;
     }
   });
@@ -346,9 +632,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const toolMap = { v: 'select', l: 'line', t: 'text', g: 'angle', f: 'bucket', r: 'arc-dim', x: 'axis', e: 'graph', o: 'circle', s: 'rect', p: 'projection' };
+    const toolMap = {
+      v: 'select', l: 'line', t: 'text', g: 'angle', f: 'bucket',
+      r: 'arc-dim', x: 'axis', e: 'graph', o: 'circle', s: 'rect',
+      p: 'projection', n: 'polygon', a: 'arc', q: 'label',
+    };
     const key = e.key.toLowerCase();
-
     if (toolMap[key] && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
       const btn = document.querySelector(`.tool-btn[data-tool="${toolMap[key]}"]`);
       if (btn) btn.click();
@@ -359,7 +648,7 @@ document.addEventListener('DOMContentLoaded', () => {
       deleteActive();
     }
 
-    // 화살표 키 — 선택 객체 이동 (Shift: 10px, 기본: 1px)
+    // 화살표 키 이동
     const arrowMap = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
     if (arrowMap[e.key] && Tools.getCurrentTool() === 'select') {
       e.preventDefault();
@@ -382,11 +671,24 @@ document.addEventListener('DOMContentLoaded', () => {
       CanvasManager.redo();
     }
 
+    if (e.key === 'Enter' && Tools.getCurrentTool() === 'polygon') {
+      e.preventDefault();
+      Tools.confirmPolygon();
+      return;
+    }
+    if (e.key === 'Enter' && Tools.getCurrentTool() === 'arc') {
+      e.preventDefault();
+      Tools.cancelArc();
+      return;
+    }
+
     if (e.key === 'Escape') {
       Tools.cancelText();
       Tools.cancelAngle();
       Tools.cancelAxisRatio();
       Tools.cancelGraph();
+      Tools.cancelPolygon();
+      Tools.cancelArc();
       document.getElementById('shortcut-modal').classList.add('hidden');
     }
   });

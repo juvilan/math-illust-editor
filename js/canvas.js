@@ -4,7 +4,7 @@ const CanvasManager = (() => {
   let redoStack = [];
   let historyLock = false;
 
-  const CUSTOM_PROPS = ['_isTempPreview', '_type', '_latex', '_axisData', '_locked', '_graphExpr', '_graphXMin', '_graphXMax', '_graphScale', '_graphYScale', '_graphOriginX', '_graphOriginY', '_graphXDirX', '_graphXDirY', '_graphFnKey', '_graphParams'];
+  const CUSTOM_PROPS = ['_type', '_latex', '_axisData', '_locked', '_graphExpr', '_graphXMin', '_graphXMax', '_graphScale', '_graphYScale', '_graphOriginX', '_graphOriginY', '_graphXDirX', '_graphXDirY', '_graphFnKey', '_graphParams'];
 
   let _snapshotTimer = null;
   function snapshot() {
@@ -21,15 +21,23 @@ const CanvasManager = (() => {
     canvas.setWidth(800);
     canvas.setHeight(600);
 
-    canvas.on('object:added', _onModified);
-    canvas.on('object:modified', _onModified);
-    canvas.on('object:removed', _onModified);
+    canvas.on('object:added',    _onModifiedFiltered);
+    canvas.on('object:modified', _onModifiedFiltered);
+    canvas.on('object:removed',  _onModifiedFiltered);
 
+    _onModified(); // 초기 빈 캔버스 상태를 history에 시딩 (첫 객체 undo 가능하게)
     return canvas;
+  }
+
+  // _isTempPreview 객체는 히스토리에 기록하지 않음 (M-1)
+  function _onModifiedFiltered(e) {
+    if (e && e.target && e.target._isTempPreview) return;
+    _onModified();
   }
 
   function _onModified() {
     if (historyLock) return;
+    // 저장 시 미리보기 객체 제외 (M-1)
     const json = JSON.stringify(canvas.toJSON(CUSTOM_PROPS));
     if (history.length && history[history.length - 1] === json) return;
     history.push(json);
@@ -41,8 +49,7 @@ const CanvasManager = (() => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const url = e.target.result; // data URL → SVG export에 배경 embed 가능
-        _loadImageFromURL(url, resolve);
+        _loadImageFromURL(e.target.result, resolve);
       };
       reader.readAsDataURL(file);
     });
@@ -58,16 +65,18 @@ const CanvasManager = (() => {
       canvas.setHeight(Math.round(img.height * scale));
 
       img.set({ scaleX: scale, scaleY: scale, left: 0, top: 0,
-        selectable: false, evented: false, originX: 'left', originY: 'top' });
+        originX: 'left', originY: 'top',
+        _type: 'bg-image',
+      });
 
       canvas.clear();
-      canvas.setBackgroundImage(img, () => {
-        canvas.renderAll();
-        history = [];
-        redoStack = [];
-        _onModified();
-        resolve();
-      });
+      canvas.add(img);
+      canvas.sendToBack(img);
+      canvas.renderAll();
+      history = [];
+      redoStack = [];
+      _onModified();
+      resolve();
     });
   }
 
@@ -94,14 +103,25 @@ const CanvasManager = (() => {
     });
   }
 
+  // H-3: loadJSON 후 히스토리 초기화 / M-6: try/catch로 historyLock 고착 방지
   function loadJSON(file) {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
+        let parsed;
+        try {
+          parsed = JSON.parse(e.target.result);
+        } catch (_) {
+          resolve();
+          return;
+        }
         historyLock = true;
-        canvas.loadFromJSON(JSON.parse(e.target.result), () => {
+        canvas.loadFromJSON(parsed, () => {
           canvas.renderAll();
           historyLock = false;
+          history = [];
+          redoStack = [];
+          _onModified();
           resolve();
         });
       };
@@ -111,9 +131,11 @@ const CanvasManager = (() => {
 
   function undo() {
     if (history.length < 2) return;
+    canvas.discardActiveObject();
     redoStack.push(history.pop());
     historyLock = true;
     canvas.loadFromJSON(JSON.parse(history[history.length - 1]), () => {
+      canvas.discardActiveObject();
       canvas.renderAll();
       historyLock = false;
     });
@@ -121,10 +143,12 @@ const CanvasManager = (() => {
 
   function redo() {
     if (redoStack.length === 0) return;
+    canvas.discardActiveObject();
     const state = redoStack.pop();
     history.push(state);
     historyLock = true;
     canvas.loadFromJSON(JSON.parse(state), () => {
+      canvas.discardActiveObject();
       canvas.renderAll();
       historyLock = false;
     });
@@ -138,25 +162,40 @@ const CanvasManager = (() => {
     a.click();
   }
 
+  // L-4: blob URL 해제
   function exportSVG() {
     const svg = canvas.toSVG();
     const blob = new Blob([svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.download = `math-illust-${Date.now()}.svg`;
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  // M-1: 미리보기 객체 제외하고 저장 / L-4: blob URL 해제
   function saveJSON() {
+    // 임시 프리뷰 객체를 저장에서 제외
+    const allObjects = canvas.getObjects();
+    const previews = allObjects.filter(o => o._isTempPreview);
+    previews.forEach(o => canvas.remove(o));
+
     const json = JSON.stringify(canvas.toJSON(CUSTOM_PROPS));
+
+    previews.forEach(o => canvas.add(o));
+
     const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.download = `math-illust-${Date.now()}.json`;
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   function getCanvas() { return canvas; }
+  function setHistoryLock(v) { historyLock = v; }
 
-  return { init, loadImage, loadSVG, loadJSON, undo, redo, exportPNG, exportSVG, saveJSON, getCanvas, snapshot };
+  return { init, loadImage, loadSVG, loadJSON, undo, redo, exportPNG, exportSVG, saveJSON, getCanvas, snapshot, setHistoryLock };
 })();
