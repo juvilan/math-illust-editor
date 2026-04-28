@@ -1428,13 +1428,12 @@ const Tools = (() => {
       const svg = node && node.querySelector('svg');
       if (!svg) return buildText(p, latex);
 
-      // ex 단위 파싱으로 비율 유지 크기 계산
+      // ex 단위 비율로 크기 계산 (pxPerEx 기준 — 문자마다 동일한 스케일 유지)
       const wEx = parseFloat(svg.getAttribute('width')) || 2;
       const hEx = parseFloat(svg.getAttribute('height')) || 1;
-      const targetH = Math.max(fontSize * 1.5, 20);
-      const targetW = (wEx / hEx) * targetH;
-      svg.setAttribute('width', Math.round(targetW));
-      svg.setAttribute('height', Math.round(targetH));
+      const pxPerEx = Math.max(fontSize * 1.5, 20);
+      svg.setAttribute('width',  Math.round(wEx * pxPerEx));
+      svg.setAttribute('height', Math.round(hEx * pxPerEx));
 
       let s = new XMLSerializer().serializeToString(svg);
       // xlink:href → href (일부 브라우저에서 data URL 로딩 실패 원인)
