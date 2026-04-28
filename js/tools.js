@@ -92,7 +92,12 @@ const Tools = (() => {
   const POLY_SNAP_RADIUS = 18;
 
   // Label tool state
-  let currentLabel = 'A';
+  let labelMode = 'roman';  // 'roman' | 'italic' | 'greek'
+  const _labelValues = { roman: 'A', italic: 'l', greek: 'alpha' };
+  const _GREEK_LETTERS = ['alpha','beta','gamma','delta','epsilon','zeta','eta','theta',
+                          'iota','kappa','lambda','mu','nu','xi','omicron','pi','rho',
+                          'sigma','tau','upsilon','phi','chi','psi','omega'];
+  const _GREEK_DEFAULTS = { roman: 'A', italic: 'l', greek: 'alpha' };
 
   // Arc tool state (3-click: center → start-point → end-point)
   let arcPhase      = 0;   // 0: idle, 1: waiting start-point, 2: waiting end-point
@@ -157,20 +162,46 @@ const Tools = (() => {
   function setPointStyle(v) { pointStyle = v; }
   function setShapeFillEnabled(v) { shapeFillEnabled = v; }
   function setShapeFillColor(v)   { shapeFillColor   = v; }
-  function setCurrentLabel(v)     { currentLabel = v || 'A'; _syncLabelUI(); }
-  function getCurrentLabel()      { return currentLabel; }
+  function setLabelMode(mode) {
+    if (!_labelValues.hasOwnProperty(mode)) return;
+    labelMode = mode;
+    _syncLabelUI();
+  }
+  function setLabelValue(v) {
+    const val = (v || '').trim();
+    if (!val) return;
+    _labelValues[labelMode] = val;
+    _syncLabelUI();
+  }
+  function getLabelMode()  { return labelMode; }
+  function getLabelValue() { return _labelValues[labelMode]; }
   function getCurrentTool() { return currentTool; }
 
+  function _latexForLabel(mode, value) {
+    if (mode === 'roman')  return `\\mathrm{${value}}`;
+    if (mode === 'italic') return value;
+    if (mode === 'greek')  return `\\${value}`;
+    return value;
+  }
+
   function _syncLabelUI() {
-    const el = document.getElementById('label-current');
-    if (el) el.value = currentLabel;
+    const elVal = document.getElementById('label-current');
+    if (elVal) elVal.value = _labelValues[labelMode];
+    const elMode = document.getElementById('label-mode-select');
+    if (elMode) elMode.value = labelMode;
   }
 
   function _advanceLabel() {
-    if (/^[A-Z]$/.test(currentLabel)) {
-      currentLabel = currentLabel === 'Z' ? 'A' : String.fromCharCode(currentLabel.charCodeAt(0) + 1);
-    } else if (/^[a-z]$/.test(currentLabel)) {
-      currentLabel = currentLabel === 'z' ? 'a' : String.fromCharCode(currentLabel.charCodeAt(0) + 1);
+    const cur = _labelValues[labelMode];
+    if (labelMode === 'roman' && /^[A-Z]$/.test(cur)) {
+      _labelValues.roman = cur === 'Z' ? 'A' : String.fromCharCode(cur.charCodeAt(0) + 1);
+    } else if (labelMode === 'italic' && /^[a-z]$/.test(cur)) {
+      _labelValues.italic = cur === 'z' ? 'a' : String.fromCharCode(cur.charCodeAt(0) + 1);
+    } else if (labelMode === 'greek') {
+      const idx = _GREEK_LETTERS.indexOf(cur);
+      if (idx !== -1) {
+        _labelValues.greek = _GREEK_LETTERS[(idx + 1) % _GREEK_LETTERS.length];
+      }
     }
     _syncLabelUI();
   }
@@ -231,8 +262,12 @@ const Tools = (() => {
     }
 
     if (currentTool === 'label') {
-      const lbl = currentLabel;
-      buildMathText(p, `\\mathrm{${lbl}}`).then(img => {
+      const mode  = labelMode;
+      const value = _labelValues[mode];
+      const latex = _latexForLabel(mode, value);
+      buildMathText(p, latex).then(img => {
+        img._labelMode  = mode;
+        img._labelValue = value;
         canvas.add(img);
         canvas.setActiveObject(img);
         canvas.renderAll();
@@ -1443,6 +1478,22 @@ const Tools = (() => {
     return rebuilt;
   }
 
+  async function rebuildLabel(obj, mode, value) {
+    if (!_labelValues.hasOwnProperty(mode) || !value) return;
+    const latex   = _latexForLabel(mode, value);
+    const prevSz  = fontSize;
+    if (obj._fontSize) fontSize = obj._fontSize;
+    const newImg  = await buildMathText({ x: obj.left, y: obj.top }, latex);
+    fontSize = prevSz;
+    newImg._labelMode  = mode;
+    newImg._labelValue = value;
+    newImg.set({ angle: obj.angle, scaleX: 1, scaleY: 1 });
+    canvas.remove(obj);
+    canvas.add(newImg);
+    canvas.setActiveObject(newImg);
+    canvas.renderAll();
+  }
+
   async function confirmText() {
     const text = document.getElementById('text-input').value;
     document.getElementById('text-modal').classList.add('hidden');
@@ -1644,7 +1695,8 @@ const Tools = (() => {
     setShapeFillEnabled, setShapeFillColor,
     setStrokeEnabled,
     setCoverFillColor, getCoverFillColor,
-    setCurrentLabel, getCurrentLabel,
+    setLabelMode, setLabelValue, getLabelMode, getLabelValue,
+    rebuildLabel,
     getCurrentTool,
     confirmText, cancelText,
     confirmAngle, cancelAngle,

@@ -130,14 +130,18 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('point-style').addEventListener('change', (e) => Tools.setPointStyle(e.target.value));
 
   // ── Label ──
-  document.getElementById('label-current').addEventListener('change', (e) => {
-    Tools.setCurrentLabel(e.target.value.trim() || 'A');
+  document.getElementById('label-mode-select').addEventListener('change', (e) => {
+    Tools.setLabelMode(e.target.value);
+  });
+  document.getElementById('label-current').addEventListener('input', (e) => {
+    Tools.setLabelValue(e.target.value);
   });
   document.getElementById('label-current').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') e.target.blur();
   });
   document.getElementById('btn-label-reset').addEventListener('click', () => {
-    Tools.setCurrentLabel('A');
+    const defaults = { roman: 'A', italic: 'l', greek: 'alpha' };
+    Tools.setLabelValue(defaults[Tools.getLabelMode()] || 'A');
   });
 
   // ── Cover 가리기 색상 + 스포이드 ──
@@ -362,6 +366,16 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('insp-font-size-val').textContent = sz;
     } else {
       fontSection.classList.add('hidden');
+    }
+
+    // 레이블 수정 섹션
+    const labelSection = document.getElementById('insp-label-section');
+    if (obj._labelMode !== undefined) {
+      labelSection.classList.remove('hidden');
+      document.getElementById('insp-label-mode').value  = obj._labelMode;
+      document.getElementById('insp-label-value').value = obj._labelValue || '';
+    } else {
+      labelSection.classList.add('hidden');
     }
 
     // 좌표축 설정 섹션
@@ -793,6 +807,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') Tools.cancelGraph();
   });
 
+  // ── Inspector 레이블 수정 ──
+  document.getElementById('insp-label-apply').addEventListener('click', async () => {
+    const obj = canvas.getActiveObject();
+    if (!obj || obj._labelMode === undefined) return;
+    const mode  = document.getElementById('insp-label-mode').value;
+    const value = document.getElementById('insp-label-value').value.trim();
+    if (!value) return;
+    await Tools.rebuildLabel(obj, mode, value);
+    CanvasManager.snapshot();
+  });
+
   // ── Inspector 글자 크기 ──
   document.getElementById('insp-font-size').addEventListener('input', async (e) => {
     const sz = parseInt(e.target.value);
@@ -896,7 +921,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const active = canvas.getActiveObject();
       if (!active) return;
       active.clone((cloned) => { _clipboard = cloned; },
-        ['_type', '_latex', '_axisData']);
+        ['_type', '_latex', '_axisData', '_labelMode', '_labelValue', '_fontSize']);
       return;
     }
     if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
@@ -914,7 +939,7 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.setActiveObject(cloned);
         canvas.requestRenderAll();
         _clipboard = cloned;
-      }, ['_type', '_latex', '_axisData']);
+      }, ['_type', '_latex', '_axisData', '_labelMode', '_labelValue', '_fontSize']);
       return;
     }
   });
