@@ -97,6 +97,12 @@ const Tools = (() => {
   const _GREEK_LETTERS = ['alpha','beta','gamma','delta','epsilon','zeta','eta','theta',
                           'iota','kappa','lambda','mu','nu','xi','omicron','pi','rho',
                           'sigma','tau','upsilon','phi','chi','psi','omega'];
+  const _GREEK_SYMBOL_MAP = {
+    'α':'alpha','β':'beta','γ':'gamma','δ':'delta','ε':'epsilon','ζ':'zeta','η':'eta',
+    'θ':'theta','ι':'iota','κ':'kappa','λ':'lambda','μ':'mu','ν':'nu','ξ':'xi',
+    'ο':'omicron','π':'pi','ρ':'rho','σ':'sigma','τ':'tau','υ':'upsilon',
+    'φ':'phi','χ':'chi','ψ':'psi','ω':'omega',
+  };
   const _GREEK_DEFAULTS = { roman: 'A', italic: 'l', greek: 'alpha' };
 
   // Arc tool state (3-click: center → start-point → end-point)
@@ -168,8 +174,18 @@ const Tools = (() => {
     _syncLabelUI();
   }
   function setLabelValue(v) {
-    const val = (v || '').trim();
+    let val = (v || '').trim();
     if (!val) return;
+    // 그리스 유니코드 기호 → LaTeX 이름으로 변환
+    if (_GREEK_SYMBOL_MAP[val]) val = _GREEK_SYMBOL_MAP[val];
+    // 입력값으로 모드 자동 감지
+    if (_GREEK_LETTERS.includes(val)) {
+      labelMode = 'greek';
+    } else if (/^[A-Z]$/.test(val)) {
+      labelMode = 'roman';
+    } else if (/^[a-z]$/.test(val)) {
+      labelMode = 'italic';
+    }
     _labelValues[labelMode] = val;
     _syncLabelUI();
   }
