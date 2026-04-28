@@ -394,12 +394,16 @@
     </div>
     <!-- 도구 상자 (LaTeX 기호 버튼) -->
     <div id="latex-ref">
-      <div class="lref-tabs">
-        <button class="lref-tab active" data-cat="greek">그리스</button>
-        <button class="lref-tab" data-cat="ops">연산자</button>
-        <button class="lref-tab" data-cat="frac">분수/루트</button>
-        <button class="lref-tab" data-cat="geom">기하</button>
-        <button class="lref-tab" data-cat="sets">집합/논리</button>
+      <div class="lref-header">
+        <label class="lref-label">분류</label>
+        <select id="lref-cat-select" class="lref-select">
+          <option value="func">함수</option>
+          <option value="frac">분수/루트</option>
+          <option value="ops">연산자</option>
+          <option value="sets">집합</option>
+          <option value="greek">그리스</option>
+          <option value="special">특수문자</option>
+        </select>
       </div>
       <div class="lref-grid" id="lref-grid"></div>
     </div>

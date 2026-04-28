@@ -953,6 +953,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── LaTeX 수식 도움말 패널 ──
   const _LATEX_REF = {
+    func: [
+      {s:'sin',l:'\\sin',w:true},{s:'cos',l:'\\cos',w:true},{s:'tan',l:'\\tan',w:true},
+      {s:'cot',l:'\\cot',w:true},{s:'sec',l:'\\sec',w:true},{s:'csc',l:'\\csc',w:true},
+      {s:'arcsin',l:'\\arcsin',w:true},{s:'arccos',l:'\\arccos',w:true},{s:'arctan',l:'\\arctan',w:true},
+      {s:'sinh',l:'\\sinh',w:true},{s:'cosh',l:'\\cosh',w:true},{s:'tanh',l:'\\tanh',w:true},
+      {s:'log',l:'\\log',w:true},{s:'ln',l:'\\ln',w:true},{s:'exp',l:'\\exp',w:true},
+      {s:'lim',l:'\\lim',w:true},{s:'max',l:'\\max',w:true},{s:'min',l:'\\min',w:true},
+      {s:'sup',l:'\\sup',w:true},{s:'inf',l:'\\inf',w:true},{s:'det',l:'\\det',w:true},
+      {s:'deg',l:'\\deg',w:true},{s:'gcd',l:'\\gcd',w:true},{s:'mod',l:'\\mod',w:true},
+    ],
+    frac: [
+      {s:'a/b',l:'\\frac{a}{b}',w:true},{s:'√x',l:'\\sqrt{x}',w:true},{s:'ⁿ√x',l:'\\sqrt[n]{x}',w:true},
+      {s:'x²',l:'x^{2}'},{s:'xⁿ',l:'x^{n}'},{s:'x⁻¹',l:'x^{-1}',w:true},{s:'xₙ',l:'x_{n}'},
+      {s:'x^m_n',l:'x^{m}_{n}',w:true},{s:'|x|',l:'|x|'},{s:'‖x‖',l:'\\|x\\|',w:true},
+      {s:'x̄',l:'\\overline{x}',w:true},{s:'x̂',l:'\\hat{x}',w:true},
+      {s:'ẋ',l:'\\dot{x}',w:true},{s:'ẍ',l:'\\ddot{x}',w:true},
+      {s:'x⃗',l:'\\vec{x}',w:true},{s:'⋯',l:'\\cdots'},{s:'⋮',l:'\\vdots'},{s:'⋱',l:'\\ddots'},
+    ],
+    ops: [
+      {s:'±',l:'\\pm'},{s:'∓',l:'\\mp'},{s:'×',l:'\\times'},{s:'÷',l:'\\div'},
+      {s:'·',l:'\\cdot'},{s:'∘',l:'\\circ'},{s:'≠',l:'\\neq'},{s:'≤',l:'\\leq'},
+      {s:'≥',l:'\\geq'},{s:'≈',l:'\\approx'},{s:'≡',l:'\\equiv'},{s:'∼',l:'\\sim'},
+      {s:'∝',l:'\\propto'},{s:'∂',l:'\\partial'},{s:'∇',l:'\\nabla'},
+      {s:'∑',l:'\\sum'},{s:'∏',l:'\\prod'},{s:'∫',l:'\\int'},{s:'∮',l:'\\oint'},
+      {s:'∵',l:'\\because'},{s:'∴',l:'\\therefore'},
+      {s:'→',l:'\\to'},{s:'↔',l:'\\leftrightarrow'},{s:'⟹',l:'\\Rightarrow'},{s:'⟺',l:'\\Leftrightarrow'},
+    ],
+    sets: [
+      {s:'∈',l:'\\in'},{s:'∉',l:'\\notin'},{s:'⊂',l:'\\subset'},{s:'⊃',l:'\\supset'},
+      {s:'⊆',l:'\\subseteq'},{s:'⊇',l:'\\supseteq'},{s:'∪',l:'\\cup'},{s:'∩',l:'\\cap'},
+      {s:'∅',l:'\\emptyset'},{s:'ℝ',l:'\\mathbb{R}'},{s:'ℤ',l:'\\mathbb{Z}'},
+      {s:'ℕ',l:'\\mathbb{N}'},{s:'ℚ',l:'\\mathbb{Q}'},{s:'ℂ',l:'\\mathbb{C}'},
+      {s:'∀',l:'\\forall'},{s:'∃',l:'\\exists'},{s:'¬',l:'\\neg'},
+      {s:'∧',l:'\\wedge'},{s:'∨',l:'\\vee'},
+    ],
     greek: [
       {s:'α',l:'\\alpha'},{s:'β',l:'\\beta'},{s:'γ',l:'\\gamma'},{s:'δ',l:'\\delta'},
       {s:'ε',l:'\\epsilon'},{s:'ζ',l:'\\zeta'},{s:'η',l:'\\eta'},{s:'θ',l:'\\theta'},
@@ -964,41 +999,17 @@ document.addEventListener('DOMContentLoaded', () => {
       {s:'Ξ',l:'\\Xi'},{s:'Π',l:'\\Pi'},{s:'Σ',l:'\\Sigma'},{s:'Φ',l:'\\Phi'},
       {s:'Ψ',l:'\\Psi'},{s:'Ω',l:'\\Omega'},
     ],
-    ops: [
-      {s:'±',l:'\\pm'},{s:'∓',l:'\\mp'},{s:'×',l:'\\times'},{s:'÷',l:'\\div'},
-      {s:'·',l:'\\cdot'},{s:'∘',l:'\\circ'},{s:'≠',l:'\\neq'},{s:'≤',l:'\\leq'},
-      {s:'≥',l:'\\geq'},{s:'≈',l:'\\approx'},{s:'≡',l:'\\equiv'},{s:'∼',l:'\\sim'},
-      {s:'∝',l:'\\propto'},{s:'∞',l:'\\infty'},{s:'∂',l:'\\partial'},{s:'∇',l:'\\nabla'},
-      {s:'Σ',l:'\\sum'},{s:'Π',l:'\\prod'},{s:'∫',l:'\\int'},{s:'∮',l:'\\oint'},
-      {s:'∵',l:'\\because'},{s:'∴',l:'\\therefore'},{s:'…',l:'\\cdots'},
-    ],
-    frac: [
-      {s:'a/b',l:'\\frac{a}{b}',w:true},{s:'√x',l:'\\sqrt{x}',w:true},{s:'ⁿ√x',l:'\\sqrt[n]{x}',w:true},
-      {s:'x²',l:'x^{2}'},{s:'xⁿ',l:'x^{n}'},{s:'x⁻¹',l:'x^{-1}',w:true},{s:'xₙ',l:'x_{n}'},
-      {s:'x^y_z',l:'x^{m}_{n}',w:true},{s:'|x|',l:'|x|'},{s:'‖x‖',l:'\\|x\\|',w:true},
-      {s:'x̄',l:'\\overline{x}',w:true},{s:'x̂',l:'\\hat{x}',w:true},{s:'ẋ',l:'\\dot{x}',w:true},
-      {s:'⋱',l:'\\ddots'},{s:'⋮',l:'\\vdots'},{s:'⋯',l:'\\cdots'},
-    ],
-    geom: [
-      {s:'∠',l:'\\angle'},{s:'△',l:'\\triangle'},{s:'□',l:'\\square'},
-      {s:'∥',l:'\\parallel'},{s:'⊥',l:'\\perp'},{s:'≅',l:'\\cong'},{s:'∼',l:'\\sim'},
-      {s:'AB⃗',l:'\\vec{AB}',w:true},{s:'AB̂',l:'\\widehat{AB}',w:true},
-      {s:'↔',l:'\\leftrightarrow'},{s:'⟺',l:'\\Leftrightarrow'},
-      {s:'sin',l:'\\sin',w:true},{s:'cos',l:'\\cos',w:true},{s:'tan',l:'\\tan',w:true},
-      {s:'log',l:'\\log',w:true},{s:'ln',l:'\\ln',w:true},{s:'lim',l:'\\lim',w:true},
-      {s:'max',l:'\\max',w:true},{s:'min',l:'\\min',w:true},
-    ],
-    sets: [
-      {s:'∈',l:'\\in'},{s:'∉',l:'\\notin'},{s:'⊂',l:'\\subset'},{s:'⊃',l:'\\supset'},
-      {s:'⊆',l:'\\subseteq'},{s:'⊇',l:'\\supseteq'},{s:'∪',l:'\\cup'},{s:'∩',l:'\\cap'},
-      {s:'∅',l:'\\emptyset'},{s:'ℝ',l:'\\mathbb{R}'},{s:'ℤ',l:'\\mathbb{Z}'},
-      {s:'ℕ',l:'\\mathbb{N}'},{s:'ℚ',l:'\\mathbb{Q}'},{s:'ℂ',l:'\\mathbb{C}'},
-      {s:'∀',l:'\\forall'},{s:'∃',l:'\\exists'},{s:'¬',l:'\\neg'},
-      {s:'∧',l:'\\wedge'},{s:'∨',l:'\\vee'},{s:'→',l:'\\to'},{s:'⟹',l:'\\Rightarrow'},
+    special: [
+      {s:'∠',l:'\\angle'},{s:'△',l:'\\triangle'},{s:'□',l:'\\square'},{s:'○',l:'\\bigcirc'},
+      {s:'∥',l:'\\parallel'},{s:'⊥',l:'\\perp'},{s:'≅',l:'\\cong'},
+      {s:'AB⃗',l:'\\overrightarrow{AB}',w:true},{s:'AB̂',l:'\\widehat{AB}',w:true},
+      {s:'AB̄',l:'\\overline{AB}',w:true},{s:'∞',l:'\\infty'},
+      {s:'°',l:'^{\\circ}'},{s:'′',l:'^{\\prime}'},{s:'″',l:'^{\\prime\\prime}'},
+      {s:'ℓ',l:'\\ell'},{s:'∎',l:'\\blacksquare'},{s:'…',l:'\\ldots'},
     ],
   };
 
-  let _lrefCat = 'greek';
+  let _lrefCat = 'func';
   const _lrefGrid = document.getElementById('lref-grid');
 
   function _renderLrefGrid(cat) {
@@ -1020,13 +1031,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  document.querySelectorAll('.lref-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.lref-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      _lrefCat = tab.dataset.cat;
-      _renderLrefGrid(_lrefCat);
-    });
+  document.getElementById('lref-cat-select').addEventListener('change', (e) => {
+    _lrefCat = e.target.value;
+    _renderLrefGrid(_lrefCat);
   });
 
   _renderLrefGrid(_lrefCat);
