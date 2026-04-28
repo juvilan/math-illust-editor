@@ -53,7 +53,7 @@
   <div id="tool-options-bar">
 
     <!-- 색상: 대부분 도구 -->
-    <div class="topt" data-tools="line,point,arc,circle,ellipse,rect,polygon,label,text,angle,arc-dim,projection,bucket">
+    <div class="topt" data-tools="line,point,arc,circle,ellipse,rect,polygon,label,text,formula,angle,arc-dim,projection,bucket">
       <label>색상</label>
       <input type="color" id="color-picker" value="#000000" title="선·텍스트 색상">
     </div>
@@ -101,10 +101,18 @@
       <button id="btn-label-reset" title="기본값으로 초기화">↺</button>
     </div>
 
+    <!-- 텍스트 글자 크기 -->
+    <div class="topt" data-tools="text">
+      <label>크기</label>
+      <input type="range" id="text-font-size" min="10" max="80" value="18">
+      <span class="val-label" id="text-font-size-val">18</span>
+    </div>
+
     <!-- 힌트 메시지 (도구별) -->
     <div class="topt topt-hint" data-tools="select">객체를 선택하면 오른쪽 속성 패널에서 편집할 수 있습니다</div>
     <div class="topt topt-hint" data-tools="line">① 시작점 클릭 → ② 끝점 클릭 · Shift: 45° 스냅</div>
-    <div class="topt topt-hint" data-tools="text">클릭하면 LaTeX 수식 입력창이 열립니다</div>
+    <div class="topt topt-hint" data-tools="text">클릭 후 바로 입력 · 더블클릭으로 재편집</div>
+    <div class="topt topt-hint" data-tools="formula">클릭하면 LaTeX 수식 입력창이 열립니다</div>
     <div class="topt topt-hint" data-tools="angle">드래그로 각도 호의 크기를 정한 뒤 라벨을 입력합니다</div>
     <div class="topt topt-hint" data-tools="arc-dim">시작점 → 끝점 클릭 후 호 치수 라벨을 입력합니다</div>
     <div class="topt topt-hint" data-tools="axis">클릭하면 기본 좌표축이 생성됩니다. 선택 후 인스펙터에서 수정하세요</div>
@@ -173,8 +181,11 @@
       <button class="tool-btn" data-tool="label" title="레이블 (Q)">
         <span class="tool-icon" style="font-style:normal;font-weight:600">A</span><small>레이블</small>
       </button>
-      <button class="tool-btn" data-tool="text" title="텍스트 (T)">
+      <button class="tool-btn" data-tool="text" title="텍스트 (T) — 일반 텍스트">
         <span class="tool-icon">T</span><small>텍스트</small>
+      </button>
+      <button class="tool-btn" data-tool="formula" title="수식 (M) — LaTeX 수식">
+        <span class="tool-icon" style="font-style:italic">∑</span><small>수식</small>
       </button>
       <button class="tool-btn" data-tool="angle" title="각도 (G)">
         <span class="tool-icon">∠</span><small>각도</small>
@@ -262,6 +273,15 @@
           </div>
         </div>
         <!-- 레이블 수정 -->
+        <!-- 텍스트 내용 편집 -->
+        <div class="insp-section hidden" id="insp-text-section">
+          <div class="insp-section-title">텍스트 내용</div>
+          <textarea id="insp-text-value" rows="3" placeholder="텍스트 입력..."
+            style="width:100%;background:var(--surface0);border:1px solid var(--surface1);
+                   border-radius:4px;color:var(--text);padding:6px 8px;font-size:13px;
+                   font-family:inherit;resize:vertical;outline:none;line-height:1.5;
+                   box-sizing:border-box;margin-top:4px"></textarea>
+        </div>
         <div class="insp-section hidden" id="insp-label-section">
           <div class="insp-section-title">레이블</div>
           <div class="insp-row">
@@ -362,15 +382,34 @@
 
 <!-- ══ Modals ══ -->
 
-<!-- 텍스트 입력 모달 -->
+<!-- 수식 편집기 모달 (한글 수식창 스타일) -->
 <div id="text-modal" class="modal hidden">
-  <div class="modal-box">
-    <div class="modal-title" id="modal-title">텍스트 입력</div>
-    <input type="text" id="text-input" placeholder="LaTeX 입력 예: A, \frac{1}{2}, \alpha">
-    <div class="modal-row">
-      <label>글자 크기</label>
+  <div class="modal-box formula-editor-box">
+    <!-- 헤더: 타이틀 + 크기 -->
+    <div class="formula-editor-header">
+      <span id="modal-title" class="formula-editor-title">수식 편집기</span>
+      <label>크기</label>
       <input type="range" id="font-size-input" min="10" max="60" value="18">
       <span class="val-label" id="font-size-val">18</span>
+    </div>
+    <!-- 도구 상자 (LaTeX 기호 버튼) -->
+    <div id="latex-ref">
+      <div class="lref-tabs">
+        <button class="lref-tab active" data-cat="greek">그리스</button>
+        <button class="lref-tab" data-cat="ops">연산자</button>
+        <button class="lref-tab" data-cat="frac">분수/루트</button>
+        <button class="lref-tab" data-cat="geom">기하</button>
+        <button class="lref-tab" data-cat="sets">집합/논리</button>
+      </div>
+      <div class="lref-grid" id="lref-grid"></div>
+    </div>
+    <!-- 수식 편집 창 (미리보기) + 수식 입력 창 -->
+    <div class="formula-split">
+      <div class="formula-split-label">수식 편집 창</div>
+      <div id="formula-preview"><span class="formula-placeholder">미리보기</span></div>
+      <div class="formula-split-label formula-split-input-label">수식 입력 창</div>
+      <textarea id="text-input" rows="2" spellcheck="false"
+        placeholder="\frac{1}{2},  \alpha,  x^{2}+y^{2}=r^{2}"></textarea>
     </div>
     <div class="modal-buttons">
       <button id="text-ok">확인</button>

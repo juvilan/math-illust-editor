@@ -272,8 +272,24 @@ const Tools = (() => {
 
     const p = ptSnap(e);
 
-    if (currentTool === 'text') {
+    if (currentTool === 'formula') {
       showTextModal(p);
+      return;
+    }
+
+    if (currentTool === 'text') {
+      const obj = new fabric.IText('텍스트', {
+        left: p.x, top: p.y,
+        fontSize, fill: color,
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        originX: 'center', originY: 'center',
+        _type: 'plain-text',
+      });
+      canvas.add(obj);
+      canvas.setActiveObject(obj);
+      obj.enterEditing();
+      obj.selectAll();
+      canvas.renderAll();
       return;
     }
 
@@ -441,7 +457,7 @@ const Tools = (() => {
       const input = document.getElementById('text-input');
       input.value = existing._latex || '';
       modal.classList.remove('hidden');
-      setTimeout(() => { input.select(); input.focus(); }, 50);
+      setTimeout(() => { input.select(); input.focus(); input.dispatchEvent(new Event('input')); }, 50);
       textCallback = async (newLatex) => {
         if (!newLatex.trim()) return;
         const newImg = await buildMathText({ x: existing.left, y: existing.top }, newLatex);
@@ -493,7 +509,7 @@ const Tools = (() => {
       const input = document.getElementById('text-input');
       input.value = labelObj ? (labelObj._latex || labelObj.text || '') : '';
       modal.classList.remove('hidden');
-      setTimeout(() => { input.select(); input.focus(); }, 50);
+      setTimeout(() => { input.select(); input.focus(); input.dispatchEvent(new Event('input')); }, 50);
       textCallback = async (newLabel) => {
         if (!newLabel.trim()) return;
         const newLbl = await buildMathLabel(
@@ -1349,7 +1365,7 @@ const Tools = (() => {
       titleMap[mode || currentTool] || '텍스트 입력';
     input.value = '';
     modal.classList.remove('hidden');
-    setTimeout(() => input.focus(), 50);
+    setTimeout(() => { input.focus(); input.dispatchEvent(new Event('input')); }, 50);
 
     textCallback = async (text) => {
       if (!text.trim()) return;

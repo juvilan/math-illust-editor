@@ -467,6 +467,118 @@ select {
 }
 .modal-hint b { color: var(--text); font-weight: 600; }
 
+/* ── LaTeX 수식 도움말 패널 ── */
+#latex-ref {
+  border: 1px solid var(--surface1);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.lref-tabs {
+  display: flex;
+  background: var(--surface0);
+  border-bottom: 1px solid var(--surface1);
+}
+.lref-tab {
+  flex: 1;
+  padding: 5px 2px;
+  font-size: 11px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--surface1);
+  color: var(--subtext0);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.lref-tab:last-child { border-right: none; }
+.lref-tab.active { background: var(--surface1); color: var(--text); font-weight: 600; }
+.lref-tab:hover:not(.active) { background: var(--mantle); color: var(--text); }
+.lref-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 6px;
+  background: var(--mantle);
+  min-height: 72px;
+  max-height: 108px;
+  overflow-y: auto;
+}
+.lref-btn {
+  padding: 3px 7px;
+  min-width: 30px;
+  background: var(--surface0);
+  border: 1px solid var(--surface1);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+  line-height: 1.5;
+  user-select: none;
+  transition: background 0.1s, border-color 0.1s;
+}
+.lref-btn:hover { background: var(--surface1); border-color: var(--blue); color: var(--blue); }
+.lref-btn.lref-wide { font-size: 11px; min-width: 44px; }
+
+/* ── 수식 편집기 모달 (한글 수식창 스타일) ── */
+.formula-editor-box {
+  min-width: 520px;
+  gap: 10px;
+}
+.formula-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.formula-editor-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+.formula-split {
+  border: 1px solid var(--surface1);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.formula-split-label {
+  background: var(--surface0);
+  padding: 3px 10px;
+  font-size: 11px;
+  color: var(--subtext0);
+  border-bottom: 1px solid var(--surface1);
+}
+.formula-split-input-label {
+  border-top: 1px solid var(--surface1);
+}
+#formula-preview {
+  min-height: 90px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+}
+.formula-placeholder {
+  color: #aaaaaa;
+  font-size: 13px;
+}
+.formula-split textarea {
+  width: 100%;
+  background: var(--mantle);
+  border: none;
+  color: var(--text);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  padding: 8px 12px;
+  resize: none;
+  outline: none;
+  line-height: 1.7;
+  display: block;
+}
+.formula-split textarea:focus {
+  background: #1a1a2e;
+}
+
 /* ── Shortcut table ── */
 .shortcut-table {
   width: 100%;
