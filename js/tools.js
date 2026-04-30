@@ -22,45 +22,6 @@ const Tools = (() => {
   // Graph tool state
   let _pendingGraphCtx = null;
 
-  const GRAPH_FN_DEFS = [
-    { key:'linear',    label:'일차함수',    params:[{k:'a',v:1,s:.5},{k:'b',v:0,s:.5}],
-      display: p=>`y = ${p.a}x + ${p.b}`,
-      build: p=>`(${p.a})*x+(${p.b})` },
-    { key:'quadratic', label:'이차함수',    params:[{k:'a',v:1,s:.5},{k:'b',v:0,s:.5},{k:'c',v:0,s:.5}],
-      display: p=>`y = ${p.a}x² + ${p.b}x + ${p.c}`,
-      build: p=>`(${p.a})*x**2+(${p.b})*x+(${p.c})` },
-    { key:'cubic',     label:'삼차함수',    params:[{k:'a',v:1,s:.5},{k:'b',v:0,s:.5},{k:'c',v:0,s:.5},{k:'d',v:0,s:.5}],
-      display: p=>`y = ${p.a}x³ + ${p.b}x² + ${p.c}x + ${p.d}`,
-      build: p=>`(${p.a})*x**3+(${p.b})*x**2+(${p.c})*x+(${p.d})` },
-    { key:'power',     label:'거듭제곱',    params:[{k:'a',v:1,s:.5},{k:'n',v:3,s:1}],
-      display: p=>`y = ${p.a}x^${p.n}`,
-      build: p=>`(${p.a})*pow(x,${p.n})` },
-    { key:'sin',       label:'사인',        params:[{k:'a',v:1,s:.5},{k:'b',v:1,s:.5},{k:'c',v:0,s:.1},{k:'d',v:0,s:.5}],
-      display: p=>`y = ${p.a}·sin(${p.b}x + ${p.c}) + ${p.d}`,
-      build: p=>`(${p.a})*sin((${p.b})*x+(${p.c}))+(${p.d})` },
-    { key:'cos',       label:'코사인',      params:[{k:'a',v:1,s:.5},{k:'b',v:1,s:.5},{k:'c',v:0,s:.1},{k:'d',v:0,s:.5}],
-      display: p=>`y = ${p.a}·cos(${p.b}x + ${p.c}) + ${p.d}`,
-      build: p=>`(${p.a})*cos((${p.b})*x+(${p.c}))+(${p.d})` },
-    { key:'tan',       label:'탄젠트',      params:[{k:'a',v:1,s:.5},{k:'b',v:1,s:.5},{k:'c',v:0,s:.1},{k:'d',v:0,s:.5}],
-      display: p=>`y = ${p.a}·tan(${p.b}x + ${p.c}) + ${p.d}`,
-      build: p=>`(${p.a})*tan((${p.b})*x+(${p.c}))+(${p.d})` },
-    { key:'exp',       label:'지수함수',    params:[{k:'a',v:1,s:.5},{k:'b',v:2,s:1},{k:'c',v:0,s:.5}],
-      display: p=>`y = ${p.a}·${p.b}^x + ${p.c}`,
-      build: p=>`(${p.a})*pow(${p.b},x)+(${p.c})` },
-    { key:'log',       label:'로그함수',    params:[{k:'a',v:1,s:.5},{k:'b',v:10,s:1},{k:'c',v:0,s:.5}],
-      display: p=>`y = ${p.a}·log_${p.b}(x) + ${p.c}`,
-      build: p=>`(${p.a})*log(x)/log(${p.b})+(${p.c})` },
-    { key:'sqrt',      label:'제곱근',      params:[{k:'a',v:1,s:.5},{k:'b',v:1,s:.5},{k:'c',v:0,s:.5},{k:'d',v:0,s:.5}],
-      display: p=>`y = ${p.a}·√(${p.b}x + ${p.c}) + ${p.d}`,
-      build: p=>`(${p.a})*sqrt((${p.b})*x+(${p.c}))+(${p.d})` },
-    { key:'rational',  label:'분수함수',    params:[{k:'a',v:1,s:.5},{k:'b',v:1,s:.5},{k:'c',v:0,s:.5},{k:'d',v:0,s:.5}],
-      display: p=>`y = ${p.a}/( ${p.b}x + ${p.c}) + ${p.d}`,
-      build: p=>`(${p.a})/((${p.b})*x+(${p.c}))+(${p.d})` },
-    { key:'abs',       label:'절댓값',      params:[{k:'a',v:1,s:.5},{k:'b',v:1,s:.5},{k:'c',v:0,s:.5},{k:'d',v:0,s:.5}],
-      display: p=>`y = ${p.a}|${p.b}x + ${p.c}| + ${p.d}`,
-      build: p=>`(${p.a})*abs((${p.b})*x+(${p.c}))+(${p.d})` },
-    { key:'custom',    label:'직접 입력',   params:[], display:null, build:null },
-  ];
 
   // Grid snap
   let gridSnapEnabled = false;
