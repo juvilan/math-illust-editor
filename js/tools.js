@@ -116,6 +116,30 @@ const Tools = (() => {
   let textCallback = null;
   let angleCallback = null;
 
+  // ── Axis label sync helpers ──
+  function _findAxisLabels(axisId) {
+    return canvas.getObjects().filter(o => o._type === 'axis-label' && o._axisId === axisId);
+  }
+
+  function _cacheAxisLabelLocals(group) {
+    const invMatrix = fabric.util.invertTransform(group.calcTransformMatrix());
+    _findAxisLabels(group._axisId).forEach(lbl => {
+      lbl._axisLocalPos = fabric.util.transformPoint({ x: lbl.left, y: lbl.top }, invMatrix);
+      lbl._axisLocalCC  = fabric.util.transformPoint(lbl._constraintCenter, invMatrix);
+    });
+  }
+
+  function _applyAxisGroupTransform(group) {
+    const matrix = group.calcTransformMatrix();
+    _findAxisLabels(group._axisId).forEach(lbl => {
+      if (!lbl._axisLocalPos) return;
+      const worldPos = fabric.util.transformPoint(lbl._axisLocalPos, matrix);
+      const worldCC  = fabric.util.transformPoint(lbl._axisLocalCC,  matrix);
+      lbl.set({ left: worldPos.x, top: worldPos.y, angle: -group.angle, _constraintCenter: worldCC });
+      lbl.setCoords();
+    });
+  }
+
   function init(c) {
     canvas = c;
     canvas.on('mouse:down', onMouseDown);
@@ -821,7 +845,11 @@ const Tools = (() => {
     const group = new fabric.Group([axesPath, ...tickObjs], { lockUniScaling: true });
     group._type   = 'axis';
     group._axisId = `ax-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    group.on('rotating', function () {
+    group.on('mousedown', function () { _cacheAxisLabelLocals(this); });
+    group.on('moving',    function () { _applyAxisGroupTransform(this); });
+    group.on('scaling',   function () { _applyAxisGroupTransform(this); });
+    group.on('rotating',  function () {
+      _applyAxisGroupTransform(this);
       this._objects.forEach(o => {
         if (o._type === 'math-label' || o.type === 'text') o.set({ angle: -this.angle });
       });
