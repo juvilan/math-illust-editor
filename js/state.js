@@ -25,3 +25,21 @@ window.ToolState = {
   // Label
   labelMode: 'roman',
 };
+
+// ── 공유 유틸리티 (모든 도구 모듈에서 사용) ──
+function _hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+function _shapeFill() {
+  const { shapeFillEnabled, shapeFillColor, fillOpacity } = ToolState;
+  return shapeFillEnabled ? _hexToRgba(shapeFillColor, fillOpacity) : '';
+}
+function _strokeVal() {
+  return ToolState.strokeEnabled ? ToolState.color : 'transparent';
+}
+function dist(a, b) {
+  return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2);
+}
