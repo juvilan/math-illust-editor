@@ -44,7 +44,7 @@ const Tools = (() => {
   // Stroke visibility (닫힌 도형)
   let strokeEnabled = true;
   function _strokeVal() { return strokeEnabled ? color : 'transparent'; }
-  function setStrokeEnabled(v) { strokeEnabled = v; }
+  function setStrokeEnabled(v) { strokeEnabled = v; ToolState.strokeEnabled = v; }
 
   // Polygon tool state
   let polygonVertices   = [];
@@ -103,6 +103,7 @@ const Tools = (() => {
 
   function init(c) {
     canvas = c;
+    ToolState.canvas = c;
     canvas.on('mouse:down', onMouseDown);
     canvas.on('mouse:move', onMouseMove);
     canvas.on('mouse:up', onMouseUp);
@@ -143,19 +144,20 @@ const Tools = (() => {
     canvas.renderAll();
   }
 
-  function setColor(c) { color = c; }
-  function setStrokeWidth(w) { strokeWidth = parseInt(w); }
-  function setFillOpacity(o) { fillOpacity = parseFloat(o) / 100; }
-  function setFontSize(s) { fontSize = parseInt(s); }
-  function setDashPattern(v) { dashPattern = v.split(',').map(Number); }
-  function setLineStyle(v)  { lineStyle  = v; }
-  function setArrowStyle(v) { arrowStyle = v; }
-  function setPointStyle(v) { pointStyle = v; }
-  function setShapeFillEnabled(v) { shapeFillEnabled = v; }
-  function setShapeFillColor(v)   { shapeFillColor   = v; }
+  function setColor(c) { color = c; ToolState.color = c; }
+  function setStrokeWidth(w) { strokeWidth = parseInt(w); ToolState.strokeWidth = strokeWidth; }
+  function setFillOpacity(o) { fillOpacity = parseFloat(o) / 100; ToolState.fillOpacity = fillOpacity; }
+  function setFontSize(s) { fontSize = parseInt(s); ToolState.fontSize = fontSize; }
+  function setDashPattern(v) { dashPattern = v.split(',').map(Number); ToolState.dashPattern = dashPattern; }
+  function setLineStyle(v)  { lineStyle  = v; ToolState.lineStyle  = v; }
+  function setArrowStyle(v) { arrowStyle = v; ToolState.arrowStyle = v; }
+  function setPointStyle(v) { pointStyle = v; ToolState.pointStyle = v; }
+  function setShapeFillEnabled(v) { shapeFillEnabled = v; ToolState.shapeFillEnabled = v; }
+  function setShapeFillColor(v)   { shapeFillColor   = v; ToolState.shapeFillColor   = v; }
   function setLabelMode(mode) {
     if (!_labelValues.hasOwnProperty(mode)) return;
     labelMode = mode;
+    ToolState.labelMode = mode;
     _syncLabelUI();
   }
   function setLabelValue(v) {
@@ -599,9 +601,10 @@ const Tools = (() => {
   // ── Grid snap controls ──
   function toggleGridSnap() {
     gridSnapEnabled = !gridSnapEnabled;
+    ToolState.gridSnapEnabled = gridSnapEnabled;
     return gridSnapEnabled;
   }
-  function setGridSize(v) { gridSize = Math.max(1, parseInt(v) || 10); }
+  function setGridSize(v) { gridSize = Math.max(1, parseInt(v) || 10); ToolState.gridSize = gridSize; }
 
   // ── Object lock ──
   function toggleLock() {
