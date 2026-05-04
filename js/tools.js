@@ -56,6 +56,7 @@ const Tools = (() => {
     canvas.on('mouse:move',    onMouseMove);
     canvas.on('mouse:up',      onMouseUp);
     canvas.on('mouse:dblclick', onDblClick);
+    AxisTools.initAxisCanvas(c);
 
     // 축 레이블 원형 드래그 제한
     canvas.on('object:moving', (e) => {

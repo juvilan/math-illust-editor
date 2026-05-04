@@ -15,13 +15,45 @@ const AxisTools = (() => {
   }
 
   function _applyAxisGroupTransform(group) {
-    const matrix = group.calcTransformMatrix();
+    const matrix     = group.calcTransformMatrix();
+    const worldAngle = Math.atan2(matrix[1], matrix[0]) * 180 / Math.PI;
     _findAxisLabels(group._axisId).forEach(lbl => {
       if (!lbl._axisLocalPos) return;
       const worldPos = fabric.util.transformPoint(lbl._axisLocalPos, matrix);
       const worldCC  = fabric.util.transformPoint(lbl._axisLocalCC,  matrix);
-      lbl.set({ left: worldPos.x, top: worldPos.y, angle: -group.angle, _constraintCenter: worldCC });
+      lbl.set({ left: worldPos.x, top: worldPos.y, angle: -worldAngle, _constraintCenter: worldCC });
       lbl.setCoords();
+    });
+  }
+
+  function _getAxisGroupsFrom(target) {
+    if (!target) return [];
+    if (target._type === 'axis') return [target];
+    if (target.type === 'activeSelection')
+      return target._objects.filter(o => o._type === 'axis');
+    return [];
+  }
+
+  function initAxisCanvas(canvas) {
+    canvas.on('before:transform', (e) => {
+      _getAxisGroupsFrom(e.transform && e.transform.target).forEach(g => _cacheAxisLabelLocals(g));
+    });
+    canvas.on('object:moving', (e) => {
+      _getAxisGroupsFrom(e.target).forEach(g => _applyAxisGroupTransform(g));
+    });
+    canvas.on('object:scaling', (e) => {
+      _getAxisGroupsFrom(e.target).forEach(g => _applyAxisGroupTransform(g));
+    });
+    canvas.on('object:rotating', (e) => {
+      _getAxisGroupsFrom(e.target).forEach(g => {
+        _applyAxisGroupTransform(g);
+        const mat = g.calcTransformMatrix();
+        const wa  = Math.atan2(mat[1], mat[0]) * 180 / Math.PI;
+        g._objects.forEach(o => {
+          if (o._type === 'math-label' || o.type === 'text') o.set({ angle: -wa });
+        });
+        g.set({ dirty: true });
+      });
     });
   }
 
@@ -114,16 +146,6 @@ const AxisTools = (() => {
     const group = new fabric.Group([axesPath, ...tickObjs], { lockUniScaling: true });
     group._type   = 'axis';
     group._axisId = `ax-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    group.on('mousedown', function () { _cacheAxisLabelLocals(this); });
-    group.on('moving',    function () { _applyAxisGroupTransform(this); });
-    group.on('scaling',   function () { _applyAxisGroupTransform(this); });
-    group.on('rotating',  function () {
-      _applyAxisGroupTransform(this);
-      this._objects.forEach(o => {
-        if (o._type === 'math-label' || o.type === 'text') o.set({ angle: -this.angle });
-      });
-      this.set({ dirty: true });
-    });
 
     const constraintRadius = labelSize * 3;
     const labelDefs = [
@@ -262,5 +284,6 @@ const AxisTools = (() => {
     rebuildAxis,
     confirmAxisRatio,
     cancelAxisRatio,
+    initAxisCanvas,
   };
 })();
