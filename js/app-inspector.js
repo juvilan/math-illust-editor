@@ -18,6 +18,7 @@ function initInspector(canvas) {
     'math-text': '수식', 'math-label': '레이블', 'bg-image': '배경 이미지',
     'axis': '좌표축', 'graph': '그래프', 'angle': '각도', 'arc-dim': '호치수',
     'projection': '수선의 발', 'axis-label': '축 레이블', 'cover-rect': '가리기',
+    'meta-group': '그룹',
   };
 
   function _toHex(color) {

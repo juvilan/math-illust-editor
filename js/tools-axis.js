@@ -288,11 +288,22 @@ const AxisTools = (() => {
   function confirmAxisRatio() { axisRatioCallback = null; }
   function cancelAxisRatio()  { axisRatioCallback = null; }
 
+  // ungroup 후 axis-label 위치·제약 재동기화
+  function refreshAxisLabels(group) {
+    const invMatrix = fabric.util.invertTransform(group.calcTransformMatrix());
+    _findAxisLabels(group._axisId).forEach(lbl => {
+      lbl._axisLocalPos    = fabric.util.transformPoint({ x: lbl.left, y: lbl.top }, invMatrix);
+      lbl._constraintCenter = { x: lbl.left, y: lbl.top };
+      lbl._axisLocalCC     = fabric.util.transformPoint({ x: lbl.left, y: lbl.top }, invMatrix);
+    });
+  }
+
   return {
     createDefaultAxis,
     rebuildAxis,
     confirmAxisRatio,
     cancelAxisRatio,
     initAxisCanvas,
+    refreshAxisLabels,
   };
 })();

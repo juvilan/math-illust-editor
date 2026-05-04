@@ -77,6 +77,15 @@ function initKeyboard(canvas) {
       CanvasManager.redo();
     }
 
+    if (e.key === 'g' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+      e.preventDefault();
+      AppCtx.groupSelection();
+    }
+    if (e.key === 'g' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+      e.preventDefault();
+      AppCtx.ungroupSelection();
+    }
+
     if (e.key === 'Enter' && Tools.getCurrentTool() === 'polygon') {
       e.preventDefault();
       Tools.confirmPolygon();

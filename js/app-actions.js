@@ -16,6 +16,74 @@ function initActions(canvas) {
   }
   AppCtx.deleteActive = deleteActive;
 
+  function groupSelection() {
+    const ao = canvas.getActiveObject();
+    if (!ao || ao.type !== 'activeSelection') return;
+    const selected = ao.getObjects();
+    if (selected.length < 2) return;
+
+    const axisLabels = [];
+    selected.forEach(obj => {
+      if (obj._type === 'axis' && obj._axisId) {
+        canvas.getObjects()
+          .filter(lbl => lbl._type === 'axis-label' && lbl._axisId === obj._axisId && !selected.includes(lbl))
+          .forEach(lbl => axisLabels.push(lbl));
+      }
+    });
+
+    canvas.discardActiveObject();
+
+    CanvasManager.setHistoryLock(true);
+    const allMembers = [...selected, ...axisLabels];
+    allMembers.forEach(o => canvas.remove(o));
+
+    const grp = new fabric.Group(allMembers, { canvas });
+    grp._type = 'meta-group';
+    canvas.add(grp);
+    canvas.setActiveObject(grp);
+    canvas.renderAll();
+    CanvasManager.setHistoryLock(false);
+    CanvasManager.saveNow();
+  }
+  AppCtx.groupSelection = groupSelection;
+
+  function ungroupSelection() {
+    const ao = canvas.getActiveObject();
+    if (!ao || ao._type !== 'meta-group') return;
+
+    const matrix   = ao.calcTransformMatrix();
+    const members  = [...ao._objects];
+
+    CanvasManager.setHistoryLock(true);
+    canvas.remove(ao);
+
+    members.forEach(obj => {
+      const worldPt = fabric.util.transformPoint({ x: obj.left, y: obj.top }, matrix);
+      obj.group = null; // stale 그룹 참조 제거 (hit-testing 오류 방지)
+      obj.set({
+        left:    worldPt.x,
+        top:     worldPt.y,
+        angle:   (obj.angle  || 0) + (ao.angle  || 0),
+        scaleX:  (obj.scaleX || 1) * (ao.scaleX || 1),
+        scaleY:  (obj.scaleY || 1) * (ao.scaleY || 1),
+        selectable: true,
+        evented:    true,
+      });
+      obj.setCoords();
+      canvas.add(obj);
+    });
+
+    canvas.discardActiveObject();
+    canvas.renderAll();
+    CanvasManager.setHistoryLock(false);
+    CanvasManager.saveNow();
+
+    canvas.getObjects()
+      .filter(o => o._type === 'axis')
+      .forEach(g => AxisTools.refreshAxisLabels(g));
+  }
+  AppCtx.ungroupSelection = ungroupSelection;
+
   document.getElementById('btn-export').addEventListener('click', () => CanvasManager.exportPNG());
   document.getElementById('btn-export-svg').addEventListener('click', () => CanvasManager.exportSVG());
   document.getElementById('btn-save').addEventListener('click', () => CanvasManager.saveJSON());
