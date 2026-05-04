@@ -118,11 +118,9 @@ const MathTextTools = (() => {
       s = s.replace(/xlink:href/g, 'href');
       s = s.replace(/fill="currentColor"/g,   `fill="${color}"`);
       s = s.replace(/stroke="currentColor"/g, `stroke="${color}"`);
-      const blob    = new Blob([s], { type: 'image/svg+xml' });
-      const blobUrl = URL.createObjectURL(blob);
+      const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
       return new Promise((resolve) => {
-        fabric.Image.fromURL(blobUrl, (img) => {
-          URL.revokeObjectURL(blobUrl);
+        fabric.Image.fromURL(dataUrl, (img) => {
           if (!img) { resolve(fallback()); return; }
           img.set({ left, top, originX: 'center', originY: 'center', selectable: false });
           img._type  = 'math-label';
@@ -154,11 +152,9 @@ const MathTextTools = (() => {
       s = s.replace(/fill="currentColor"/g,   `fill="${color}"`);
       s = s.replace(/stroke="currentColor"/g, `stroke="${color}"`);
 
-      const blob    = new Blob([s], { type: 'image/svg+xml' });
-      const blobUrl = URL.createObjectURL(blob);
+      const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
       return new Promise((resolve) => {
-        fabric.Image.fromURL(blobUrl, (img) => {
-          URL.revokeObjectURL(blobUrl);
+        fabric.Image.fromURL(dataUrl, (img) => {
           if (img) {
             img.set({ left: p.x, top: p.y, originX: 'center', originY: 'center', lockUniScaling: true });
             img._type     = 'math-text';
