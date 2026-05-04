@@ -188,8 +188,11 @@ const AxisTools = (() => {
         xDirX: 1, xDirY: 0,
         xLen, yLen, xNegLen, yNegLen, labelSize, tickOpts,
       };
+      CanvasManager.setHistoryLock(true);
       ToolState.canvas.add(group);
       labels.forEach(lbl => ToolState.canvas.add(lbl));
+      CanvasManager.setHistoryLock(false);
+      CanvasManager.saveNow();
       ToolState.canvas.renderAll();
       Tools.switchToSelect();
     };
@@ -208,8 +211,11 @@ const AxisTools = (() => {
       relOriginX: origin.x - gc.x, relOriginY: origin.y - gc.y,
       xDirX: 1, xDirY: 0, ...defaults,
     };
+    CanvasManager.setHistoryLock(true);
     ToolState.canvas.add(group);
     labels.forEach(lbl => ToolState.canvas.add(lbl));
+    CanvasManager.setHistoryLock(false);
+    CanvasManager.saveNow();
     ToolState.canvas.setActiveObject(group);
     ToolState.canvas.renderAll();
     Tools.switchToSelect();
@@ -269,9 +275,12 @@ const AxisTools = (() => {
       labelSize: newLabelSize,
       tickOpts,
     };
+    CanvasManager.setHistoryLock(true);
     canvas.remove(group);
     canvas.add(newGroup);
     labels.forEach(lbl => canvas.add(lbl));
+    CanvasManager.setHistoryLock(false);
+    CanvasManager.saveNow();
     canvas.setActiveObject(newGroup);
     canvas.renderAll();
   }

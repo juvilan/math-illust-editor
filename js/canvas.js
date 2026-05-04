@@ -199,6 +199,7 @@ const CanvasManager = (() => {
 
   function getCanvas() { return canvas; }
   function setHistoryLock(v) { historyLock = v; }
+  function saveNow() { _onModified(); }
 
-  return { init, loadImage, loadSVG, loadJSON, undo, redo, exportPNG, exportSVG, saveJSON, getCanvas, snapshot, setHistoryLock };
+  return { init, loadImage, loadSVG, loadJSON, undo, redo, exportPNG, exportSVG, saveJSON, getCanvas, snapshot, saveNow, setHistoryLock };
 })();
